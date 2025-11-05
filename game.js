@@ -610,29 +610,28 @@ game.features.forEach(feature => {
 return { foodBonus, metalBonus, energyBonus, growthPenalty, nearbyFeatures };
 }
 
+function updateRoadPosition(roadEl, city1Id, city2Id) {
+    const city1El = document.getElementById(`city-${city1Id}`);
+    const city2El = document.getElementById(`city-${city2Id}`);
+    if (!city1El || !city2El) return;
 
-    function updateRoadPosition(roadEl, city1Id, city2Id) {
-        const city1El = document.getElementById(`city-${city1Id}`);
-        const city2El = document.getElementById(`city-${city2Id}`);
-        if (!city1El || !city2El) return;
+    const rect1 = city1El.getBoundingClientRect();
+    const rect2 = city2El.getBoundingClientRect();
+    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
 
-        const rect1 = city1El.getBoundingClientRect();
-        const rect2 = city2El.getBoundingClientRect();
-        const planetRect = document.getElementById('planet-view').getBoundingClientRect();
+    const x1 = rect1.left + rect1.width / 2 - planetRect.left;
+    const y1 = rect1.top + rect1.height / 2 - planetRect.top;
+    const x2 = rect2.left + rect2.width / 2 - planetRect.left;
+    const y2 = rect2.top + rect2.height / 2 - planetRect.top;
 
-        const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-        const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-        const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-        const y2 = rect2.top + rect2.height / 2 - planetRect.top;
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
 
-        const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-
-        roadEl.style.left = `${x1}px`;
-        roadEl.style.top = `${y1}px`;
-        roadEl.style.width = `${length}px`;
-        roadEl.style.transform = `rotate(${angle}deg)`;
-    }
+    roadEl.style.left = `${x1}px`;
+    roadEl.style.top = `${y1}px`;
+    roadEl.style.width = `${length}px`;
+    roadEl.style.transform = `rotate(${angle}deg)`;
+}
 
 function initiatePeaceTalks() {
     if (!hasResources(1000)) {
@@ -668,345 +667,340 @@ function initiatePeaceTalks() {
 }
 
 
-    function updateCityDisplay(city) {
-        const el = document.getElementById(`city-${city.id}`);
-        if (!el) return;
-        updateCityUnitIcons(city);
-        const inZone = isCityInHabitableZone(city);
-        const popPercent = (city.population / city.maxPopulation) * 100;
-        el.querySelector('.population-fill').style.width = `${popPercent}%`;
+function updateCityDisplay(city) {
+    const el = document.getElementById(`city-${city.id}`);
+    if (!el) return;
+    updateCityUnitIcons(city);
+    const inZone = isCityInHabitableZone(city);
+    const popPercent = (city.population / city.maxPopulation) * 100;
+    el.querySelector('.population-fill').style.width = `${popPercent}%`;
 
-        let className = `city city-${city.zoneType}`;
-        if (city.isRebel) {
-            className += ' city-rebel';
-        } else if (inZone) {
-            className += ' city-healthy';
-        } else {
-            const dist = getDistanceFromZone(city);
-            className += dist < 10 ? ' city-warning' : ' city-danger';
-        }
-        el.className = className;
-
-        game.roads.forEach(road => {
-            if (road.from === city.id || road.to === city.id) {
-                const roadEl = document.getElementById(`road-${road.id}`);
-                if (roadEl) {
-                    updateRoadPosition(roadEl, road.from, road.to);
-                }
-            }
-        });
+    let className = `city city-${city.zoneType}`;
+    if (city.isRebel) {
+        className += ' city-rebel';
+    } else if (inZone) {
+        className += ' city-healthy';
+    } else {
+        const dist = getDistanceFromZone(city);
+        className += dist < 10 ? ' city-warning' : ' city-danger';
     }
+    el.className = className;
 
-    function selectCity(city) {
-game.selectedCity = city;
-game.selectedType = 'city';
-const panel = document.getElementById('info-panel');
-const inZone = isCityInHabitableZone(city);
-const roadBonus = getRoadBonus(city);
-const featureBonus = getCityFeatureBonus(city);
-const connectedCities = getConnectedCities(city.id);
-
-const rebellionText = city.isRebel ? '<p style="color: #ff4400;"><strong>REBEL!</strong></p>' : '';
-const happinessColor = city.happiness > 60 ? '#4CAF50' : (city.happiness > 30 ? '#ffaa00' : '#ff4400');
-
-const upgradeText = city.upgradeLevel < 2 ? `<p><strong>Fortification:</strong> Level ${city.upgradeLevel}</p>` : '<p><strong>Fortification:</strong> Max Level</p>';
-const spec = CITY_SPECIALIZATIONS[city.specialization];
-const specText = `<div style="background: rgba(100,100,255,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
-<p style="font-size: 11px; margin-bottom: 5px;"><strong>${spec.icon} ${spec.name}</strong></p>
-<p style="font-size: 9px; opacity: 0.8;">${spec.description}</p>
-</div>`;
-
-const specButtons = city.specialization === 'none' && !city.isRebel ?
-`<div style="display: flex; gap: 5px; margin-top: 8px;">
-    <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'military')" ${game.resources < 500 ? 'disabled' : ''}>⚔️ Military (500)</button>
-    <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'trade')" ${game.resources < 400 ? 'disabled' : ''}>💰 Trade (400)</button>
-    <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'research')" ${game.resources < 600 ? 'disabled' : ''}>🔬 Research (600)</button>
-</div>` : '';
-const upgradeCost = [300, 600][city.upgradeLevel || 0];
-const upgradeBtn = city.upgradeLevel < 2 && !city.isRebel ?
-`<button class="action-btn" onclick="upgradeCity(${city.id})" ${!hasResources(city.upgradeLevel === 0 ? {food: 100, metal: 150, energy: 50} : {food: 200, metal: 300, energy: 100}) ? 'disabled' : ''}>Upgrade Lvl${city.upgradeLevel + 1} (${city.upgradeLevel === 0 ? '100F, 150M, 50E' : '200F, 300M, 100E'})</button>` : '';
-
-const migrateBtn = !city.isRebel && city.population >= 50 ?
-`<button class="action-btn" onclick="migrateFrom(${city.id})" ${!hasResources({food: 30, metal: 10, energy: 5}) ? 'disabled' : ''}>Migrate 50 (30F, 10M, 5E)</button>` : '';
-
-if (game.selectingAttackers) {
-const hasUnits = city.stationedUnits.infantry > 0 ||
-                 city.stationedUnits.cavalry > 0 ||
-                 city.stationedUnits.artillery > 0;
-
-if (!hasUnits) {
-    addMessage('This city has no units!', 'warning');
-    return;
+    game.roads.forEach(road => {
+        if (road.from === city.id || road.to === city.id) {
+            const roadEl = document.getElementById(`road-${road.id}`);
+            if (roadEl) {
+                updateRoadPosition(roadEl, road.from, road.to);
+            }
+        }
+    });
 }
+function selectCity(city) {
+    game.selectedCity = city;
+    game.selectedType = 'city';
+    const panel = document.getElementById('info-panel');
+    const inZone = isCityInHabitableZone(city);
+    const roadBonus = getRoadBonus(city);
+    const featureBonus = getCityFeatureBonus(city);
+    const connectedCities = getConnectedCities(city.id);
 
-const index = game.attackingCities.findIndex(c => c.id === city.id);
-if (index > -1) {
-    game.attackingCities.splice(index, 1);
-    addMessage(`Removed ${city.name} from attack`, 'info');
-} else {
-    game.attackingCities.push(city);
-    addMessage(`Added ${city.name} to attack`, 'success');
-}
+    const rebellionText = city.isRebel ? '<p style="color: #ff4400;"><strong>REBEL!</strong></p>' : '';
+    const happinessColor = city.happiness > 60 ? '#4CAF50' : (city.happiness > 30 ? '#ffaa00' : '#ff4400');
 
-updateAttackersList();
-return;
-}
-
-
-let connectionsText = '';
-if (connectedCities.length > 0) {
-    connectionsText = `<p style="font-size: 9px;"><strong>Connected:</strong> ${connectedCities.map(c => c.name).join(', ')}</p>`;
-}
-
-let featureText = '';
-if (featureBonus.nearbyFeatures.length > 0) {
-featureText = '<div style="background: rgba(0,255,0,0.05); padding: 8px; border-radius: 5px; margin: 8px 0;"><p style="font-size: 10px; color: #4CAF50; margin-bottom: 5px;"><strong>📍 Nearby Features:</strong></p>';
-featureBonus.nearbyFeatures.forEach(f => {
-    const foodText = f.actualFoodBonus > 0 ? `+${f.actualFoodBonus.toFixed(1)}F` : '';
-    const metalText = f.actualMetalBonus > 0 ? `+${f.actualMetalBonus.toFixed(1)}M` : '';
-    const energyText = f.actualEnergyBonus > 0 ? `+${f.actualEnergyBonus.toFixed(1)}E` : '';
-    const popText = f.actualGrowthPenalty !== 0 ? `${f.actualGrowthPenalty > 0 ? '+' : ''}${f.actualGrowthPenalty.toFixed(1)}pop/yr` : '';
-    const effectText = [foodText, metalText, energyText, popText].filter(t => t).join(', ');
-    const sharedText = f.sharedWith > 1 ? ` (shared with ${f.sharedWith - 1} ${f.sharedWith === 2 ? 'city' : 'cities'})` : '';
-    featureText += `<p style="font-size: 9px; margin: 3px 0; padding-left: 10px;">• ${f.type.charAt(0).toUpperCase() + f.type.slice(1)}: ${effectText}${sharedText}</p>`;
-});
-featureText += `<p style="font-size: 9px; margin-top: 5px; font-weight: bold;">Total: +${featureBonus.foodBonus.toFixed(1)}F, +${featureBonus.metalBonus.toFixed(1)}M, +${featureBonus.energyBonus.toFixed(1)}E/yr, ${featureBonus.growthPenalty >= 0 ? '+' : ''}${featureBonus.growthPenalty.toFixed(1)}pop/yr</p></div>`;
-}
-
-const totalUnitsInCity = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
-
-let stationedUnitsText = `
-    <div style="background: rgba(255,170,0,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
-        <h4 style="color: #ffaa00; font-size: 12px; margin-bottom: 6px;">Military Forces</h4>
-        <p style="font-size: 10px;">Infantry: ${city.stationedUnits.infantry} | Cavalry: ${city.stationedUnits.cavalry} | Artillery: ${city.stationedUnits.artillery}</p>
-        <p style="font-size: 9px; margin-top: 4px;">Defense: ${city.stationedUnits.infantry * 3 + city.stationedUnits.cavalry * 5 + city.stationedUnits.artillery * 2}</p>
-        <p style="font-size: 9px; margin-top: 4px;">Capacity: ${totalUnitsInCity}/8</p>
-        <button class="action-btn" style="font-size: 10px; padding: 4px;" onclick="stationUnits(${city.id})" ${city.isRebel || totalUnitsInCity === 0 ? 'disabled' : ''}>Transfer Units</button>
+    const upgradeText = city.upgradeLevel < 2 ? `<p><strong>Fortification:</strong> Level ${city.upgradeLevel}</p>` : '<p><strong>Fortification:</strong> Max Level</p>';
+    const spec = CITY_SPECIALIZATIONS[city.specialization];
+    const specText = `<div style="background: rgba(100,100,255,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+    <p style="font-size: 11px; margin-bottom: 5px;"><strong>${spec.icon} ${spec.name}</strong></p>
+    <p style="font-size: 9px; opacity: 0.8;">${spec.description}</p>
     </div>`;
 
-const totalStationed = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
-if (totalStationed > 4) {
-const penalty = ((totalStationed - 4) * 0.05 * 10).toFixed(1);
-stationedUnitsText += `<p style="font-size: 9px; margin-top: 4px; color: #ff4400;">Military Oppression: -${penalty} happiness/yr</p>`;
-}
+    const specButtons = city.specialization === 'none' && !city.isRebel ?
+        `<div style="display: flex; gap: 5px; margin-top: 8px;">
+        <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'military')" ${!hasResources({food: 200, metal: 250, energy: 50}) ? 'disabled' : ''}>⚔️ Military (200F, 250M, 50E)</button>
+        <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'trade')" ${!hasResources({food: 150, metal: 200, energy: 50}) ? 'disabled' : ''}>💰 Trade (150F, 200M, 50E)</button>
+        <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'research')" ${!hasResources({food: 200, metal: 150, energy: 250}) ? 'disabled' : ''}>🔬 Research (200F, 150M, 250E)</button>
+    </div>` : '';
 
-panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${upgradeBtn}${migrateBtn}`;
-panel.style.display = 'block';
-document.getElementById('build-road-btn').disabled = false;
+    const upgradeCost = city.upgradeLevel === 0 ? {food: 100, metal: 150, energy: 50} : {food: 200, metal: 300, energy: 100};
+    const upgradeBtn = city.upgradeLevel < 2 && !city.isRebel ?
+        `<button class="action-btn" onclick="upgradeCity(${city.id})" ${!hasResources(upgradeCost) ? 'disabled' : ''}>Upgrade Lvl${city.upgradeLevel + 1} (${city.upgradeLevel === 0 ? '100F, 150M, 50E' : '200F, 300M, 100E'})</button>` : '';
+
+    const migrateBtn = !city.isRebel && city.population >= 50 ?
+        `<button class="action-btn" onclick="migrateFrom(${city.id})" ${!hasResources({food: 30, metal: 10, energy: 5}) ? 'disabled' : ''}>Migrate 50 (30F, 10M, 5E)</button>` : '';
+
+    if (game.selectingAttackers) {
+        const hasUnits = city.stationedUnits.infantry > 0 ||
+                         city.stationedUnits.cavalry > 0 ||
+                         city.stationedUnits.artillery > 0;
+
+        if (!hasUnits) {
+            addMessage('This city has no units!', 'warning');
+            return;
+        }
+
+        const index = game.attackingCities.findIndex(c => c.id === city.id);
+        if (index > -1) {
+            game.attackingCities.splice(index, 1);
+            addMessage(`Removed ${city.name} from attack`, 'info');
+        } else {
+            game.attackingCities.push(city);
+            addMessage(`Added ${city.name} to attack`, 'success');
+        }
+
+        updateAttackersList();
+        return;
+    }
+
+    let connectionsText = '';
+    if (connectedCities.length > 0) {
+        connectionsText = `<p style="font-size: 9px;"><strong>Connected:</strong> ${connectedCities.map(c => c.name).join(', ')}</p>`;
+    }
+
+    let featureText = '';
+    if (featureBonus.nearbyFeatures.length > 0) {
+        featureText = '<div style="background: rgba(0,255,0,0.05); padding: 8px; border-radius: 5px; margin: 8px 0;"><p style="font-size: 10px; color: #4CAF50; margin-bottom: 5px;"><strong>📍 Nearby Features:</strong></p>';
+        featureBonus.nearbyFeatures.forEach(f => {
+            const foodText = f.actualFoodBonus > 0 ? `+${f.actualFoodBonus.toFixed(1)}F` : '';
+            const metalText = f.actualMetalBonus > 0 ? `+${f.actualMetalBonus.toFixed(1)}M` : '';
+            const energyText = f.actualEnergyBonus > 0 ? `+${f.actualEnergyBonus.toFixed(1)}E` : '';
+            const popText = f.actualGrowthPenalty !== 0 ? `${f.actualGrowthPenalty > 0 ? '+' : ''}${f.actualGrowthPenalty.toFixed(1)}pop/yr` : '';
+            const effectText = [foodText, metalText, energyText, popText].filter(t => t).join(', ');
+            const sharedText = f.sharedWith > 1 ? ` (shared with ${f.sharedWith - 1} ${f.sharedWith === 2 ? 'city' : 'cities'})` : '';
+            featureText += `<p style="font-size: 9px; margin: 3px 0; padding-left: 10px;">• ${f.type.charAt(0).toUpperCase() + f.type.slice(1)}: ${effectText}${sharedText}</p>`;
+        });
+        featureText += `<p style="font-size: 9px; margin-top: 5px; font-weight: bold;">Total: +${featureBonus.foodBonus.toFixed(1)}F, +${featureBonus.metalBonus.toFixed(1)}M, +${featureBonus.energyBonus.toFixed(1)}E/yr, ${featureBonus.growthPenalty >= 0 ? '+' : ''}${featureBonus.growthPenalty.toFixed(1)}pop/yr</p></div>`;
+    }
+
+    const totalUnitsInCity = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
+
+    let stationedUnitsText = `
+        <div style="background: rgba(255,170,0,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <h4 style="color: #ffaa00; font-size: 12px; margin-bottom: 6px;">Military Forces</h4>
+            <p style="font-size: 10px;">Infantry: ${city.stationedUnits.infantry} | Cavalry: ${city.stationedUnits.cavalry} | Artillery: ${city.stationedUnits.artillery}</p>
+            <p style="font-size: 9px; margin-top: 4px;">Defense: ${city.stationedUnits.infantry * 3 + city.stationedUnits.cavalry * 5 + city.stationedUnits.artillery * 2}</p>
+            <p style="font-size: 9px; margin-top: 4px;">Capacity: ${totalUnitsInCity}/8</p>
+            <button class="action-btn" style="font-size: 10px; padding: 4px;" onclick="stationUnits(${city.id})" ${city.isRebel || totalUnitsInCity === 0 ? 'disabled' : ''}>Transfer Units</button>
+        </div>`;
+
+    const totalStationed = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
+    if (totalStationed > 4) {
+        const penalty = ((totalStationed - 4) * 0.05 * 10).toFixed(1);
+        stationedUnitsText += `<p style="font-size: 9px; margin-top: 4px; color: #ff4400;">Military Oppression: -${penalty} happiness/yr</p>`;
+    }
+
+    panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${specText}${specButtons}${upgradeBtn}${migrateBtn}`;
+    panel.style.display = 'block';
+    document.getElementById('build-road-btn').disabled = false;
 }
 
 function setSpecialization(cityId, specType) {
-const city = game.cities.find(c => c.id === cityId);
-if (!city || city.isRebel) return;
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
 
-const spec = CITY_SPECIALIZATIONS[specType];
-if (!hasResources(spec.cost)) {
-    addMessage('Not enough resources!', 'warning');
-    return;
-}
+    const spec = CITY_SPECIALIZATIONS[specType];
+    if (!hasResources(spec.cost)) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
 
-spendResources(spec.cost);
-city.specialization = specType;
+    spendResources(spec.cost);
+    city.specialization = specType;
 
-const cityEl = document.getElementById(`city-${city.id}`);
-if (cityEl) {
-    cityEl.className = `city city-${city.zoneType} city-${specType}`;
-    const oldBuildings = cityEl.querySelector('.city-buildings');
-    if (oldBuildings) oldBuildings.remove();
-    generateCityBuildings(cityEl, city);
-}
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (cityEl) {
+        cityEl.className = `city city-${city.zoneType} city-${specType}`;
+        const oldBuildings = cityEl.querySelector('.city-buildings');
+        if (oldBuildings) oldBuildings.remove();
+        generateCityBuildings(cityEl, city);
+    }
 
-addMessage(`${city.name} specialized as ${spec.name}!`, 'success');
-AudioManager.playSFX('sfx-success', 0.6);
-selectCity(city);
+    addMessage(`${city.name} specialized as ${spec.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+    selectCity(city);
 }
 
 function updateAttackersList() {
-const container = document.getElementById('selected-attackers');
-if (!container) return;
+    const container = document.getElementById('selected-attackers');
+    if (!container) return;
 
-if (game.attackingCities.length === 0) {
-    container.innerHTML = '<p style="font-size: 10px; opacity: 0.7;">No cities selected</p>';
-    return;
-}
+    if (game.attackingCities.length === 0) {
+        container.innerHTML = '<p style="font-size: 10px; opacity: 0.7;">No cities selected</p>';
+        return;
+    }
 
-container.innerHTML = game.attackingCities.map(city => {
-    const dist = Math.sqrt(Math.pow(game.targetTribal.x - city.x, 2) +
-                           Math.pow(game.targetTribal.y - city.y, 2));
-    const penalty = Math.max(0, (dist - 20) * 2);
-    return `<div style="font-size: 10px; padding: 4px; background: rgba(0,255,0,0.1); margin: 3px 0; border-radius: 3px;">
-        ${city.name} - Distance: ${dist.toFixed(1)}% (${penalty > 0 ? `-${penalty.toFixed(0)}% ATK` : 'No penalty'})
-    </div>`;
-}).join('');
-}
+    container.innerHTML = game.attackingCities.map(city => {
+        const dist = Math.sqrt(Math.pow(game.targetTribal.x - city.x, 2) +
+                               Math.pow(game.targetTribal.y - city.y, 2));
+        const penalty = Math.max(0, (dist - 20) * 2);
+        return `<div style="font-size: 10px; padding: 4px; background: rgba(0,255,0,0.1); margin: 3px 0; border-radius: 3px;">
+            ${city.name} - Distance: ${dist.toFixed(1)}% (${penalty > 0 ? `-${penalty.toFixed(0)}% ATK` : 'No penalty'})
+        </div>`;
+    }).join('');
+    }
 
-function cancelAttackSelection() {
-game.selectingAttackers = false;
-game.attackingCities = [];
-game.targetTribal = null;
-document.getElementById('info-panel').innerHTML = '';
-}
+    function cancelAttackSelection() {
+    game.selectingAttackers = false;
+    game.attackingCities = [];
+    game.targetTribal = null;
+    document.getElementById('info-panel').innerHTML = '';
+    }
 
-function confirmAttack() {
-if (game.attackingCities.length === 0) {
-    addMessage('Select at least one city!', 'warning');
-    return;
-}
+    function confirmAttack() {
+    if (game.attackingCities.length === 0) {
+        addMessage('Select at least one city!', 'warning');
+        return;
+    }
 
-game.selectingAttackers = false;
-game.currentBattle = game.targetTribal;
-openBattlePlanningScreen(game.targetTribal);
+    game.selectingAttackers = false;
+    game.currentBattle = game.targetTribal;
+    openBattlePlanningScreen(game.targetTribal);
 }
 
 function stationUnits(cityId) {
-const city = game.cities.find(c => c.id === cityId);
-if (!city || city.isRebel) return;
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
 
-const panel = document.getElementById('info-panel');
+    const panel = document.getElementById('info-panel');
 
-const otherCities = game.cities.filter(c => c.id !== cityId && !c.isRebel);
-if (otherCities.length === 0) {
-    addMessage('No other cities to transfer units from!', 'warning');
-    selectCity(city);
-    return;
-}
-
-let transferUI = `<h3>Transfer Units to ${city.name}</h3>`;
-transferUI += '<p style="font-size: 10px; margin-bottom: 10px;">Select a city to transfer from:</p>';
-
-otherCities.forEach(source => {
-    const hasUnits = source.stationedUnits.infantry > 0 || source.stationedUnits.cavalry > 0 || source.stationedUnits.artillery > 0;
-    if (hasUnits) {
-        transferUI += `<div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 8px;">`;
-        transferUI += `<p style="font-size: 11px; font-weight: bold;">${source.name}</p>`;
-        transferUI += `<p style="font-size: 9px;">${source.stationedUnits.infantry} Inf, ${source.stationedUnits.cavalry} Cav, ${source.stationedUnits.artillery} Art</p>`;
-
-        if (source.stationedUnits.infantry > 0) {
-            transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'infantry')">Transfer 1 Infantry</button>`;
-        }
-        if (source.stationedUnits.cavalry > 0) {
-            transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'cavalry')">Transfer 1 Cavalry</button>`;
-        }
-        if (source.stationedUnits.artillery > 0) {
-            transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'artillery')">Transfer 1 Artillery</button>`;
-        }
-        transferUI += `</div>`;
+    const otherCities = game.cities.filter(c => c.id !== cityId && !c.isRebel);
+    if (otherCities.length === 0) {
+        addMessage('No other cities to transfer units from!', 'warning');
+        selectCity(city);
+        return;
     }
-});
 
-transferUI += `<button class="action-btn" style="margin-top: 10px;" onclick="selectCity(game.cities.find(c => c.id === ${cityId}))">Done</button>`;
+    let transferUI = `<h3>Transfer Units to ${city.name}</h3>`;
+    transferUI += '<p style="font-size: 10px; margin-bottom: 10px;">Select a city to transfer from:</p>';
 
-panel.innerHTML = transferUI;
+    otherCities.forEach(source => {
+        const hasUnits = source.stationedUnits.infantry > 0 || source.stationedUnits.cavalry > 0 || source.stationedUnits.artillery > 0;
+        if (hasUnits) {
+            transferUI += `<div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin-bottom: 8px;">`;
+            transferUI += `<p style="font-size: 11px; font-weight: bold;">${source.name}</p>`;
+            transferUI += `<p style="font-size: 9px;">${source.stationedUnits.infantry} Inf, ${source.stationedUnits.cavalry} Cav, ${source.stationedUnits.artillery} Art</p>`;
+
+            if (source.stationedUnits.infantry > 0) {
+                transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'infantry')">Transfer 1 Infantry</button>`;
+            }
+            if (source.stationedUnits.cavalry > 0) {
+                transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'cavalry')">Transfer 1 Cavalry</button>`;
+            }
+            if (source.stationedUnits.artillery > 0) {
+                transferUI += `<button class="action-btn" style="font-size: 9px; padding: 3px;" onclick="transferUnit(${source.id}, ${cityId}, 'artillery')">Transfer 1 Artillery</button>`;
+            }
+            transferUI += `</div>`;
+        }
+    });
+
+    transferUI += `<button class="action-btn" style="margin-top: 10px;" onclick="selectCity(game.cities.find(c => c.id === ${cityId}))">Done</button>`;
+
+    panel.innerHTML = transferUI;
 }
 
 function transferUnit(fromCityId, toCityId, unitType) {
-const fromCity = game.cities.find(c => c.id === fromCityId);
-const toCity = game.cities.find(c => c.id === toCityId);
+    const fromCity = game.cities.find(c => c.id === fromCityId);
+    const toCity = game.cities.find(c => c.id === toCityId);
 
-if (!fromCity || !toCity) return;
-if (fromCity.stationedUnits[unitType] < 1) return;
+    if (!fromCity || !toCity) return;
+    if (fromCity.stationedUnits[unitType] < 1) return;
 
-const totalUnitsInTarget = toCity.stationedUnits.infantry + toCity.stationedUnits.cavalry + toCity.stationedUnits.artillery;
-if (totalUnitsInTarget >= 8) {
-    addMessage(`${toCity.name} is at max capacity (8 units)!`, 'warning');
-    return;
-}
-
-fromCity.stationedUnits[unitType]--;
-toCity.stationedUnits[unitType]++;
-
-addMessage(`Transferred ${UNIT_TYPES[unitType].name}: ${fromCity.name} → ${toCity.name}`, 'success');
-
-updateCityUnitIcons(fromCity);
-updateCityUnitIcons(toCity);
-
-game.selectedCity = toCity;
-
-stationUnits(toCityId);
-}
-
-
-
-    function upgradeCity(cityId) {
-const city = game.cities.find(c => c.id === cityId);
-if (!city || city.isRebel) return;
-
-const upgradeCost = city.upgradeLevel === 0 ?
-    { food: 100, metal: 150, energy: 50 } :
-    { food: 200, metal: 300, energy: 100 };
-if (!hasResources(upgradeCost)) {
-    addMessage('Not enough resources!', 'warning');
-    return;
-}
-
-spendResources(upgradeCost);
-city.upgradeLevel = (city.upgradeLevel || 0) + 1;
-
-const cityEl = document.getElementById(`city-${city.id}`);
-if (cityEl) {
-    cityEl.classList.add(`city-upgraded-${city.upgradeLevel}`);
-    const oldBuildings = cityEl.querySelector('.city-buildings');
-    if (oldBuildings) oldBuildings.remove();
-    generateCityBuildings(cityEl, city);
-}
-
-addMessage(`${city.name} upgraded to Level ${city.upgradeLevel}!`, 'success');
-selectCity(city);
-}
-
-    function migrateFrom(cityId) {
-        const fromCity = game.cities.find(c => c.id === cityId);
-        if (!fromCity || fromCity.population < 50 || fromCity.isRebel) {
-            addMessage('Cannot migrate from this city!', 'warning');
-            return;
-        }
-        if (!hasResources({ food: 30, metal: 10, energy: 5 })) {
-            addMessage('Not enough resources!', 'warning');
-            return;
-        }
-        const targetCities = game.cities.filter(c => c.id !== fromCity.id && isCityInHabitableZone(c) && !c.isRebel);
-        if (targetCities.length === 0) {
-            addMessage('No safe cities to migrate to!', 'warning');
-            return;
-        }
-        const target = targetCities.reduce((closest, city) => {
-            const dist = Math.abs(city.position - fromCity.position);
-            const closestDist = Math.abs(closest.position - fromCity.position);
-            return dist < closestDist ? city : closest;
-        });
-        fromCity.population -= 50;
-        target.population = Math.min(target.maxPopulation, target.population + 50);
-        game.resources -= 45;
-        addMessage(`50 migrated: ${fromCity.name} → ${target.name}`, 'success');
-        updateCityDisplay(fromCity);
-        updateCityDisplay(target);
-        selectCity(fromCity);
+    const totalUnitsInTarget = toCity.stationedUnits.infantry + toCity.stationedUnits.cavalry + toCity.stationedUnits.artillery;
+    if (totalUnitsInTarget >= 8) {
+        addMessage(`${toCity.name} is at max capacity (8 units)!`, 'warning');
+        return;
     }
 
-    function startGame() {
-document.getElementById('tutorial').style.display = 'none';
-game.running = true;
-usedNames = [];
-cityIdCounter = 0;
-tribalIdCounter = 0;
-roadIdCounter = 0;
-Object.assign(game, {
-cities: [], roads: [], features: [], tribalCities: [], tribalRoads: [],
-messages: [], selectedCity: null, spaceportProgress: 0, spaceportBuilding: false,
-resources: { food: 500, metal: 400, energy: 250 }, year: 0,
-gatherCooldown: 0, tribalTradeCooldown: 0, tribalReputation: 50,
-tribalRelation: 'neutral', hasEmbassy: false, activeLaw: 'none',
-tribalRoadTimer: 0, tribalCityTimer: Math.random() * 50 + TRIBAL_CITY_INTERVAL_MIN,
-ddrActive: false, ddrCombo: 0, ddrBonus: 0, tribalsDefeated: false,
-tribalMilitaryWarned: false, commanderXP: 0, commanderLevel: 1,
-unlockedPerks: [], activePerks: [], scoutedTribalCities: [],
-battleFormation: 'balanced', retreatThreshold: 50, battlePhase: 0,
-battleMorale: 100, weatherEvent: null, currentBattle: null, relentlessUsed: false,
-peaceTalksActive: false, peaceTalksTimer: 0, peaceDemandsMet: 0,
-peaceDemands: [], currentPeaceDemand: null, peaceTreatyCooldown: 0, lastShownDemandIndex: -1,
-attackingCities: [],
-selectingAttackers: false,
-targetTribal: null
+    fromCity.stationedUnits[unitType]--;
+    toCity.stationedUnits[unitType]++;
+
+    addMessage(`Transferred ${UNIT_TYPES[unitType].name}: ${fromCity.name} → ${toCity.name}`, 'success');
+
+    updateCityUnitIcons(fromCity);
+    updateCityUnitIcons(toCity);
+
+    game.selectedCity = toCity;
+
+    stationUnits(toCityId);
+}
+function upgradeCity(cityId) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    const upgradeCost = city.upgradeLevel === 0 ?
+        { food: 100, metal: 150, energy: 50 } :
+        { food: 200, metal: 300, energy: 100 };
+    if (!hasResources(upgradeCost)) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
+
+    spendResources(upgradeCost);
+    city.upgradeLevel = (city.upgradeLevel || 0) + 1;
+
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (cityEl) {
+        cityEl.classList.add(`city-upgraded-${city.upgradeLevel}`);
+        const oldBuildings = cityEl.querySelector('.city-buildings');
+        if (oldBuildings) oldBuildings.remove();
+        generateCityBuildings(cityEl, city);
+    }
+
+    addMessage(`${city.name} upgraded to Level ${city.upgradeLevel}!`, 'success');
+    selectCity(city);
+}
+function migrateFrom(cityId) {
+    const fromCity = game.cities.find(c => c.id === cityId);
+    if (!fromCity || fromCity.population < 50 || fromCity.isRebel) {
+        addMessage('Cannot migrate from this city!', 'warning');
+        return;
+    }
+    if (!hasResources({ food: 30, metal: 10, energy: 5 })) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
+    const targetCities = game.cities.filter(c => c.id !== fromCity.id && isCityInHabitableZone(c) && !c.isRebel);
+    if (targetCities.length === 0) {
+        addMessage('No safe cities to migrate to!', 'warning');
+        return;
+    }
+    const target = targetCities.reduce((closest, city) => {
+        const dist = Math.abs(city.position - fromCity.position);
+        const closestDist = Math.abs(closest.position - fromCity.position);
+        return dist < closestDist ? city : closest;
+    });
+    fromCity.population -= 50;
+    target.population = Math.min(target.maxPopulation, target.population + 50);
+    spendResources({ food: 30, metal: 10, energy: 5 });
+    addMessage(`50 migrated: ${fromCity.name} → ${target.name}`, 'success');
+    updateCityDisplay(fromCity);
+    updateCityDisplay(target);
+    selectCity(fromCity);
+}
+
+function startGame() {
+    document.getElementById('tutorial').style.display = 'none';
+    game.running = true;
+    usedNames = [];
+    cityIdCounter = 0;
+    tribalIdCounter = 0;
+    roadIdCounter = 0;
+    Object.assign(game, {
+    cities: [], roads: [], features: [], tribalCities: [], tribalRoads: [],
+    messages: [], selectedCity: null, spaceportProgress: 0, spaceportBuilding: false,
+    resources: { food: 500, metal: 400, energy: 250 }, year: 0,
+    gatherCooldown: 0, tribalTradeCooldown: 0, tribalReputation: 50,
+    tribalRelation: 'neutral', hasEmbassy: false, activeLaw: 'none',
+    tribalRoadTimer: 0, tribalCityTimer: Math.random() * 50 + TRIBAL_CITY_INTERVAL_MIN,
+    ddrActive: false, ddrCombo: 0, ddrBonus: 0, tribalsDefeated: false,
+    tribalMilitaryWarned: false, commanderXP: 0, commanderLevel: 1,
+    unlockedPerks: [], activePerks: [], scoutedTribalCities: [],
+    battleFormation: 'balanced', retreatThreshold: 50, battlePhase: 0,
+    battleMorale: 100, weatherEvent: null, currentBattle: null, relentlessUsed: false,
+    peaceTalksActive: false, peaceTalksTimer: 0, peaceDemandsMet: 0,
+    peaceDemands: [], currentPeaceDemand: null, peaceTreatyCooldown: 0, lastShownDemandIndex: -1,
+    attackingCities: [],
+    selectingAttackers: false,
+    targetTribal: null
 });
 
 
@@ -1018,55 +1012,65 @@ generateTribalCities();
 addMessage('Build your first city in the habitable zone!', 'info');
 addMessage('Tribes will expand over time...', 'warning');
 updateHabitableZone();
+console.log('After habitable zone:', game.resources.food, game.resources.metal, game.resources.energy);
 
 if (gameLoop) clearInterval(gameLoop);
 gameLoop = setInterval(update, 100);
 }
 
-    function update() {
-        if (!game.running || game.paused || game.ddrActive) return;
-        game.year += 0.01;
+function update() {
+    if (!game.running || game.paused || game.ddrActive) return;
 
-if (Math.floor(game.year * 10) % 10 === 0) {
-        updateFeatureSharingIndicators();
-}
-
-        if (game.gatherCooldown > 0) {
-            game.gatherCooldown = Math.max(0, game.gatherCooldown - 0.1);
-            document.getElementById('gather-cooldown').style.width = `${(game.gatherCooldown / 10) * 100}%`;
-        }
-
-        game.habitableZone.left += game.zoneShiftSpeed * 0.01;
-        if (game.habitableZone.left > 70 || game.habitableZone.left < 0) {
-            game.zoneShiftSpeed *= -1;
-        }
-        updateHabitableZone();
-
-        if (game.spaceportBuilding) {
-            const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
-            if (totalRes >= 5) {
-                const foodCost = Math.min(game.resources.food, 1.67);
-                const metalCost = Math.min(game.resources.metal - foodCost, 1.67);
-                const energyCost = 5 - foodCost - metalCost;
-                game.resources.food -= foodCost;
-                game.resources.metal -= metalCost;
-                game.resources.energy -= energyCost;
-                if (game.spaceportProgress >= 100) {
-                    victory();
-                    return;
-                }
-            } else {
-                addMessage('Spaceport construction halted!', 'danger');
-                game.spaceportBuilding = false;
-            }
-        }
-    tribalExpansion();
-    tribalMilitaryManagement();
-    checkTribalWarDeclaration();
-    if (game.tribalRelation === 'war' && !game.tribalsDefeated && Math.random() < 0.01) {
-        tribalCounterattack();
+    if (isNaN(game.resources.food) || isNaN(game.resources.metal) || isNaN(game.resources.energy)) {
+            console.trace('RESOURCES BECAME NaN! Stack trace above');
+            game.paused = true;
+            return;
     }
-    // 1% chance
+
+    game.year += 0.01;
+
+    if (Math.floor(game.year * 10) % 10 === 0) {
+            updateFeatureSharingIndicators();
+    }
+
+    if (game.gatherCooldown > 0) {
+        game.gatherCooldown = Math.max(0, game.gatherCooldown - 0.1);
+        document.getElementById('gather-cooldown').style.width = `${(game.gatherCooldown / 10) * 100}%`;
+    }
+
+    game.habitableZone.left += game.zoneShiftSpeed * 0.01;
+    if (game.habitableZone.left > 70 || game.habitableZone.left < 0) {
+        game.zoneShiftSpeed *= -1;
+    }
+    updateHabitableZone();
+
+    if (game.spaceportBuilding) {
+        const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+        if (totalRes >= 5) {
+            const foodCost = Math.min(game.resources.food, 1.67);
+            const metalCost = Math.min(game.resources.metal - foodCost, 1.67);
+            const energyCost = 5 - foodCost - metalCost;
+            game.resources.food -= foodCost;
+            game.resources.metal -= metalCost;
+            game.resources.energy -= energyCost;
+            if (game.spaceportProgress >= 100) {
+                victory();
+                return;
+            }
+        } else {
+            addMessage('Spaceport construction halted!', 'danger');
+            game.spaceportBuilding = false;
+        }
+    }
+    console.log('After spaceport section:', game.resources.food, game.resources.metal, game.resources.energy);
+tribalExpansion();
+console.log('After tribal expansion:', game.resources.food, game.resources.metal, game.resources.energy);
+tribalMilitaryManagement();
+checkTribalWarDeclaration();
+if (game.tribalRelation === 'war' && !game.tribalsDefeated && Math.random() < 0.01) {
+    tribalCounterattack();
+}
+// 1% chance
 
 if (game.peaceTalksActive) {
 game.peaceTalksTimer += 0.01;
@@ -1076,14 +1080,14 @@ const yearOfTalks = Math.floor(game.peaceTalksTimer);
 if (yearOfTalks < 3 && !game.currentPeaceDemand && yearOfTalks > game.lastShownDemandIndex && game.peaceTalksTimer - yearOfTalks > 0.5) {
 const demand = game.peaceDemands[yearOfTalks];
 if (demand) {
-    game.currentPeaceDemand = demand;
-    game.lastShownDemandIndex = yearOfTalks;
-    showPeaceDemand(demand, yearOfTalks + 1);
+game.currentPeaceDemand = demand;
+game.lastShownDemandIndex = yearOfTalks;
+showPeaceDemand(demand, yearOfTalks + 1);
 }
 }
 
 if (game.peaceTalksTimer >= 3.5) {
-    concludePeaceTalks();
+concludePeaceTalks();
 }
 }
 
@@ -1091,183 +1095,184 @@ if (game.peaceTalksTimer >= 3.5) {
 if (game.peaceTreatyCooldown > 0) {
 game.peaceTreatyCooldown--;
 if (game.tribalReputation < 21) {
-    game.tribalReputation = 21;
+game.tribalReputation = 21;
 }
 }
 
 
-        game.cities.forEach(city => {
-            if (city.conquestRebellionTimer > 0) {
-                city.conquestRebellionTimer--;
-                if (city.conquestRebellionTimer === 0 && city.isRebel) {
-                    city.isRebel = false;
-                    city.happiness = 50;
-                    addMessage(`${city.name} is now loyal!`, 'success');
-                    updateCityDisplay(city);
-                }
-                return;
-            }
-
-            if (city.isRebel) {
-                city.population -= 0.3;
+    game.cities.forEach(city => {
+        if (city.conquestRebellionTimer > 0) {
+            city.conquestRebellionTimer--;
+            if (city.conquestRebellionTimer === 0 && city.isRebel) {
+                city.isRebel = false;
+                city.happiness = 50;
+                addMessage(`${city.name} is now loyal!`, 'success');
                 updateCityDisplay(city);
-                return;
             }
+            return;
+        }
 
-            const inZone = isCityInHabitableZone(city);
-const lawEffect = LAWS[game.activeLaw];
-const roadBonus = getRoadBonus(city);
-const featureBonus = getCityFeatureBonus(city);
-
-if (inZone) {
-if (city.happiness < 75) {
-    city.happiness += 0.15;
-}
-} else {
-if (city.happiness > 25) {
-    city.happiness -= 0.25;
-}
-}
-
-const totalStationedUnits = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
-if (totalStationedUnits > 4) {
-const militaryOppression = (totalStationedUnits - 4) * 0.05;
-city.happiness -= militaryOppression;
-}
-
-const lawHappinessChange = lawEffect.happinessPenalty * 0.01;
-city.happiness += lawHappinessChange;
-
-city.happiness = Math.max(0, Math.min(100, city.happiness));
-
-if (city.happiness <= 0 && !city.isRebel && city.conquestRebellionTimer === 0) {
-city.isRebel = true;
-addMessage(` ${city.name} has REBELLED due to zero happiness!`, 'danger');
-AudioManager.playSFX('sfx-alert', 0.7);
-}
-
-            if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
-const baseGrowth = city.isConverted ? 0.3 : 0.5;
-const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
-const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod;
-city.population += Math.max(0.1, growthRate);
-
-const popRatio = city.population / city.maxPopulation;
-const popProductionBonus = 0.5 + (popRatio * 0.5);
-
-const baseRes = 0.1;
-const conversionPenalty = city.isConverted ? 0.7 : 1.0;
-const lawBonus = 1 + lawEffect.resourceBonus;
-const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
-const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
-const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
-const baseProduction = baseRes + (featureBonus.resourceBonus * 0.01);
-
-if (city.specialization === 'trade') {
-game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
-} else if (city.specialization === 'research') {
-game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.2;
-game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.5;
-} else if (city.specialization === 'military') {
-game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.5;
-game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.1;
-} else {
-game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
-}
-
-
-
-if (city.tradeBoost > 0) {
-    city.tradeBoost--;
-    if (city.tradeBoost === 0) {
-        addMessage(`${city.name}'s trade boost expired`, 'info');
-    }
-}
-} else {
-                const dist = getDistanceFromZone(city);
-                const upgradeMultiplier = city.upgradeLevel === 0 ? 1 : (city.upgradeLevel === 1 ? 0.5 : 0.25);
-                const deathRate = Math.min(1, dist / 20) * upgradeMultiplier;
-                city.population -= deathRate;
-            }
-
-            city.population = Math.max(0, Math.min(city.population, city.maxPopulation));
+        if (city.isRebel) {
+            city.population -= 0.3;
             updateCityDisplay(city);
-        });
+            return;
+        }
 
-        game.cities = game.cities.filter(city => {
-            if (city.population <= 0) {
-                addMessage(`${city.name} abandoned.`, 'danger');
-                const el = document.getElementById(`city-${city.id}`);
-                if (el) el.remove();
-                game.roads = game.roads.filter(road => {
-                    if (road.from === city.id || road.to === city.id) {
-                        const roadEl = document.getElementById(`road-${road.id}`);
-                        if (roadEl) roadEl.remove();
-                        return false;
-                    }
-                    return true;
-                });
-                return false;
-            }
-            return true;
-        });
+        const inZone = isCityInHabitableZone(city);
+        const lawEffect = LAWS[game.activeLaw];
+        const roadBonus = getRoadBonus(city);
+        const featureBonus = getCityFeatureBonus(city);
 
-        const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
-if (game.cities.length > 0 && totalPop <= 0) {
-gameOver('All cities abandoned. Civilization ended.');
-return;
-}
+        if (inZone) {
+        if (city.happiness < 75) {
+        city.happiness += 0.15;
+        }
+        } else {
+        if (city.happiness > 25) {
+        city.happiness -= 0.25;
+        }
+        }
 
-if (game.cities.length > 0 && game.cities.every(city => city.isRebel)) {
-gameOver('All cities are in rebellion! Your civilization has collapsed.');
-return;
-}
+        const totalStationedUnits = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
+        if (totalStationedUnits > 4) {
+        const militaryOppression = (totalStationedUnits - 4) * 0.05;
+        city.happiness -= militaryOppression;
+        }
+
+        const lawHappinessChange = lawEffect.happinessPenalty * 0.01;
+        city.happiness += lawHappinessChange;
+
+        city.happiness = Math.max(0, Math.min(100, city.happiness));
+
+        if (city.happiness <= 0 && !city.isRebel && city.conquestRebellionTimer === 0) {
+        city.isRebel = true;
+        addMessage(` ${city.name} has REBELLED due to zero happiness!`, 'danger');
+        AudioManager.playSFX('sfx-alert', 0.7);
+        }
+
+                if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
+        const baseGrowth = city.isConverted ? 0.3 : 0.5;
+        const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
+        const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod;
+        city.population += Math.max(0.1, growthRate);
+
+        const popRatio = city.population / city.maxPopulation;
+        const popProductionBonus = 0.5 + (popRatio * 0.5);
+
+        const baseRes = 0.1;
+        const conversionPenalty = city.isConverted ? 0.7 : 1.0;
+        const lawBonus = 1 + lawEffect.resourceBonus;
+        const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
+        const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
+        const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
+        const baseProduction = baseRes + (featureBonus.resourceBonus * 0.01);
+
+        if (city.specialization === 'trade') {
+        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
+        } else if (city.specialization === 'research') {
+        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.2;
+        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.5;
+        } else if (city.specialization === 'military') {
+        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.5;
+        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.1;
+        } else {
+        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
+        }
+
+
+
+        if (city.tradeBoost > 0) {
+        city.tradeBoost--;
+        if (city.tradeBoost === 0) {
+            addMessage(`${city.name}'s trade boost expired`, 'info');
+        }
+    }
+    } else {
+            const dist = getDistanceFromZone(city);
+            const upgradeMultiplier = city.upgradeLevel === 0 ? 1 : (city.upgradeLevel === 1 ? 0.5 : 0.25);
+            const deathRate = Math.min(1, dist / 20) * upgradeMultiplier;
+            city.population -= deathRate;
+        }
+
+        city.population = Math.max(0, Math.min(city.population, city.maxPopulation));
+        updateCityDisplay(city);
+    });
+
+    game.cities = game.cities.filter(city => {
+        if (city.population <= 0) {
+            addMessage(`${city.name} abandoned.`, 'danger');
+            const el = document.getElementById(`city-${city.id}`);
+            if (el) el.remove();
+            game.roads = game.roads.filter(road => {
+                if (road.from === city.id || road.to === city.id) {
+                    const roadEl = document.getElementById(`road-${road.id}`);
+                    if (roadEl) roadEl.remove();
+                    return false;
+                }
+                return true;
+            });
+            return false;
+        }
+        return true;
+    });
+
+    const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
+    if (game.cities.length > 0 && totalPop <= 0) {
+    gameOver('All cities abandoned. Civilization ended.');
+    return;
+    }
+
+    if (game.cities.length > 0 && game.cities.every(city => city.isRebel)) {
+    gameOver('All cities are in rebellion! Your civilization has collapsed.');
+    return;
+    }
 
 
         if (game.selectedCity && game.selectedType === 'city') {
-const selectedCity = game.cities.find(c => c.id === game.selectedCity.id);
-if (selectedCity) {
+    const selectedCity = game.cities.find(c => c.id === game.selectedCity.id);
+    if (selectedCity) {
     game.selectedCity = selectedCity;
     updateCityInfoOnly(selectedCity);
-} else {
+    } else {
     game.selectedCity = null;
     game.selectedType = null;
     document.getElementById('info-panel').style.display = 'none';
-}
-} else if (game.selectedCity && game.selectedType === 'tribal') {
-const selectedTribal = game.tribalCities.find(t => t.id === game.selectedCity.id);
-if (selectedTribal) {
+    }
+    } else if (game.selectedCity && game.selectedType === 'tribal') {
+    const selectedTribal = game.tribalCities.find(t => t.id === game.selectedCity.id);
+    if (selectedTribal) {
     game.selectedCity = selectedTribal;
     updateTribalInfoOnly(selectedTribal);
-} else {
+    } else {
     game.selectedCity = null;
     game.selectedType = null;
     document.getElementById('info-panel').style.display = 'none';
-}
-}
+    }
+    }
 
-if (game.ddrActive) {
-const canReinforce = canCallReinforcements();
-const reinforceBtn = document.getElementById('reinforcement-btn');
-if (reinforceBtn) {
+    if (game.ddrActive) {
+    const canReinforce = canCallReinforcements();
+    const reinforceBtn = document.getElementById('reinforcement-btn');
+    if (reinforceBtn) {
     reinforceBtn.disabled = !canReinforce;
-    if (!canReinforce && game.resources < 300) {
+    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+    if (!canReinforce && totalRes < 300) {
         reinforceBtn.textContent = 'Need 300 Resources';
     } else if (!canReinforce) {
         reinforceBtn.textContent = 'No Supply Lines';
     } else {
         reinforceBtn.textContent = 'Call Reinforcements (300 res)';
     }
-}
-}
+    }
+    }
 
-updateUI();
+    updateUI();
 
 }
 
@@ -1889,6 +1894,7 @@ activeTribals.forEach(tribal => {
 
 game.cities.push(city);
 spendResources(cityCost);
+console.log('RIGHT AFTER spendResources in createCity:', game.resources);
 AudioManager.playSFX('sfx-city-build', 0.6);
 
 
@@ -2040,6 +2046,8 @@ return game.resources.food >= (cost.food || 0) &&
 }
 
 function spendResources(cost) {
+    console.log('BEFORE spending:', JSON.stringify(game.resources), 'cost:', cost);
+
     if (typeof cost === 'number') {
         let remaining = cost;
         const toSpend = { food: 0, metal: 0, energy: 0 };
@@ -2059,9 +2067,15 @@ function spendResources(cost) {
     }
 
     if (!hasResources(cost)) return false;
+    console.log('About to subtract - cost:', cost);
+    console.log('Current resources:', game.resources.food, game.resources.metal, game.resources.energy);
     game.resources.food -= (cost.food || 0);
+    console.log('After food subtraction:', game.resources.food);
     game.resources.metal -= (cost.metal || 0);
+    console.log('After metal subtraction:', game.resources.metal);
     game.resources.energy -= (cost.energy || 0);
+    console.log('After energy subtraction:', game.resources.energy);
+    console.log('AFTER all subtractions complete:', game.resources.food, game.resources.metal, game.resources.energy);
     return true;
 }
 
@@ -2404,25 +2418,25 @@ setTimeout(() => {
 addMessage(`Road built: ${city1.name} ↔ ${city2.name}!`, 'success');
 }
 
-    function startRoadBuilding() {
-if (!game.selectedCity) {
-    addMessage('Select a city first!', 'warning');
-    return;
-}
-if (game.selectedType === 'tribal') {
-    addMessage('Cannot build roads from tribal cities!', 'warning');
-    return;
-}
-if (game.resources < 150) {
-    addMessage('Not enough resources!', 'warning');
-    return;
-}
-game.buildingRoad = true;
-game.placingCity = false;
-game.roadStartCity = game.selectedCity;
-document.getElementById('build-road-btn').classList.add('active');
-document.getElementById('build-city-btn').classList.remove('active');
-addMessage(`Building road from ${game.selectedCity.name}. Click another city.`, 'info');
+function startRoadBuilding() {
+    if (!game.selectedCity) {
+        addMessage('Select a city first!', 'warning');
+        return;
+    }
+    if (game.selectedType === 'tribal') {
+        addMessage('Cannot build roads from tribal cities!', 'warning');
+        return;
+    }
+    if (!hasResources({food: 0, metal: 100, energy: 50})) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
+    game.buildingRoad = true;
+    game.placingCity = false;
+    game.roadStartCity = game.selectedCity;
+    document.getElementById('build-road-btn').classList.add('active');
+    document.getElementById('build-city-btn').classList.remove('active');
+    addMessage(`Building road from ${game.selectedCity.name}. Click another city.`, 'info');
 }
 
 
@@ -2672,8 +2686,7 @@ panel.innerHTML = `
         </div>
 
         <div class="planning-buttons">
-<button id="scout-battle-btn" ${isScouted || game.resources < 50 ? 'disabled' : ''}>${isScouted ? 'Scouted ✓' : 'Scout (50 res)'}</button>
-<button id="cancel-battle-btn">Cancel</button>
+<button id="scout-battle-btn" ${isScouted || (game.resources.food + game.resources.metal + game.resources.energy) < 50 ? 'disabled' : ''}>${isScouted ? 'Scouted ✓' : 'Scout (50 res)'}</button><button id="cancel-battle-btn">Cancel</button>
 <button id="begin-battle-btn" style="background: #ff4400; border-color: #ff4400;">ATTACK!</button>
 </div>
     </div>
@@ -2998,260 +3011,262 @@ if (key === expectedKey) {
 }
 
 function callReinforcements() {
-if (!canCallReinforcements()) {
-    addMessage('No reinforcements available!', 'warning');
-    return;
+    if (!canCallReinforcements()) {
+        addMessage('No reinforcements available!', 'warning');
+        return;
+    }
+
+    const closestCity = getClosestPlayerCity(game.currentBattle);
+
+    spendResources(300);
+    closestCity.stationedUnits.infantry += 1;
+    closestCity.stationedUnits.cavalry += 1;
+
+    addMessage('Reinforcements arriving!', 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+
+    game.ddrSequence.push('ArrowUp', 'ArrowRight');
 }
 
-game.resources -= 300;
-closestCity.stationedUnits.infantry += 1;
-closestCity.stationedUnits.cavalry += 1;
-
-addMessage('Reinforcements arriving!', 'success');
-AudioManager.playSFX('sfx-success', 0.6);
-
-game.ddrSequence.push('ArrowUp', 'ArrowRight');
-}
 
 
+function endEnhancedDDRBattle() {
+    if (game.ddrTimeout) {
+        clearInterval(game.ddrTimeout);
+        game.ddrTimeout = null;
+    }
 
-    function endEnhancedDDRBattle() {
-if (game.ddrTimeout) {
-    clearInterval(game.ddrTimeout);
-    game.ddrTimeout = null;
-}
+    AudioManager.playBgMusic();
 
-AudioManager.playBgMusic();
+    document.getElementById('ddr-overlay').classList.remove('active');
+    document.getElementById('weather-indicator').style.display = 'none';
+    document.getElementById('phase-indicator').style.display = 'none';
 
-document.getElementById('ddr-overlay').classList.remove('active');
-document.getElementById('weather-indicator').style.display = 'none';
-document.getElementById('phase-indicator').style.display = 'none';
+    if (!game.currentBattle) {
+        game.ddrActive = false;
+        return;
+    }
 
-if (!game.currentBattle) {
-    game.ddrActive = false;
-    return;
-}
+    const tribal = game.currentBattle;
+    const formation = FORMATIONS[game.battleFormation];
+    const prediction = calculateBattlePrediction(tribal);
+    const closestCity = getClosestPlayerCity(tribal);
 
-const tribal = game.currentBattle;
-const formation = FORMATIONS[game.battleFormation];
-const prediction = calculateBattlePrediction(tribal);
-const closestCity = getClosestPlayerCity(tribal);
-
-let playerAttack = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.attack +
-               closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.attack +
-               closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.attack);
+    let playerAttack = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.attack +
+                   closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.attack +
+                   closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.attack);
 
 
-playerAttack *= formation.atkMod;
-playerAttack *= (1 + game.ddrBonus / 100);
-playerAttack *= prediction.distancePenalty;
-playerAttack *= prediction.moraleMod;
+    playerAttack *= formation.atkMod;
+    playerAttack *= (1 + game.ddrBonus / 100);
+    playerAttack *= prediction.distancePenalty;
+    playerAttack *= prediction.moraleMod;
 
-if (game.activePerks.includes('inspiration') && game.battleMorale > 75) {
-    playerAttack *= 1.15;
-}
+    if (game.activePerks.includes('inspiration') && game.battleMorale > 75) {
+        playerAttack *= 1.15;
+    }
 
-let playerDefense = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.defense +
-                    closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.defense +
-                    closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.defense);
+    let playerDefense = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.defense +
+                        closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.defense +
+                        closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.defense);
 
-playerDefense *= formation.defMod;
+    playerDefense *= formation.defMod;
 
-if (game.activePerks.includes('defensiveGenius')) {
-    playerDefense *= 1.25;
-}
+    if (game.activePerks.includes('defensiveGenius')) {
+        playerDefense *= 1.25;
+    }
 
-const tribalAttack = tribal.units.infantry * 5 + tribal.units.cavalry * 12 + tribal.units.artillery * 20;
-const tribalDefense = tribal.units.infantry * 3 + tribal.units.cavalry * 5 + tribal.units.artillery * 2;
+    const tribalAttack = tribal.units.infantry * 5 + tribal.units.cavalry * 12 + tribal.units.artillery * 20;
+    const tribalDefense = tribal.units.infantry * 3 + tribal.units.cavalry * 5 + tribal.units.artillery * 2;
 
-const damageToTribal = Math.max(0, playerAttack - tribalDefense * 0.3);
-const damageToPlayer = Math.max(0, tribalAttack - playerDefense * 0.3);
+    const damageToTribal = Math.max(0, playerAttack - tribalDefense * 0.3);
+    const damageToPlayer = Math.max(0, tribalAttack - playerDefense * 0.3);
 
-const tribalCasualties = Math.floor(damageToTribal / 15);
-let tribalInfLost = 0, tribalCavLost = 0, tribalArtLost = 0;
-let remainingTribalCasualties = tribalCasualties;
+    const tribalCasualties = Math.floor(damageToTribal / 15);
+    let tribalInfLost = 0, tribalCavLost = 0, tribalArtLost = 0;
+    let remainingTribalCasualties = tribalCasualties;
 
-if (tribal.units.artillery > 0 && remainingTribalCasualties > 0) {
-    tribalArtLost = Math.min(tribal.units.artillery, Math.ceil(remainingTribalCasualties * 0.3));
-    tribal.units.artillery -= tribalArtLost;
-    remainingTribalCasualties -= tribalArtLost;
-}
-if (tribal.units.cavalry > 0 && remainingTribalCasualties > 0) {
-    tribalCavLost = Math.min(tribal.units.cavalry, Math.ceil(remainingTribalCasualties * 0.4));
-    tribal.units.cavalry -= tribalCavLost;
-    remainingTribalCasualties -= tribalCavLost;
-}
-if (tribal.units.infantry > 0 && remainingTribalCasualties > 0) {
-    tribalInfLost = Math.min(tribal.units.infantry, remainingTribalCasualties);
-    tribal.units.infantry -= tribalInfLost;
-}
+    if (tribal.units.artillery > 0 && remainingTribalCasualties > 0) {
+        tribalArtLost = Math.min(tribal.units.artillery, Math.ceil(remainingTribalCasualties * 0.3));
+        tribal.units.artillery -= tribalArtLost;
+        remainingTribalCasualties -= tribalArtLost;
+    }
+    if (tribal.units.cavalry > 0 && remainingTribalCasualties > 0) {
+        tribalCavLost = Math.min(tribal.units.cavalry, Math.ceil(remainingTribalCasualties * 0.4));
+        tribal.units.cavalry -= tribalCavLost;
+        remainingTribalCasualties -= tribalCavLost;
+    }
+    if (tribal.units.infantry > 0 && remainingTribalCasualties > 0) {
+        tribalInfLost = Math.min(tribal.units.infantry, remainingTribalCasualties);
+        tribal.units.infantry -= tribalInfLost;
+    }
 
-const playerCasualties = Math.floor(damageToPlayer / 20);
-let playerInfLost = 0, playerCavLost = 0, playerArtLost = 0;
-let remainingPlayerCasualties = playerCasualties;
+    const playerCasualties = Math.floor(damageToPlayer / 20);
+    let playerInfLost = 0, playerCavLost = 0, playerArtLost = 0;
+    let remainingPlayerCasualties = playerCasualties;
 
-if (closestCity.stationedUnits.artillery > 0 && remainingPlayerCasualties > 0) {
-playerArtLost = Math.min(closestCity.stationedUnits.artillery, Math.ceil(remainingPlayerCasualties * 0.3));
-closestCity.stationedUnits.artillery -= playerArtLost;
-remainingPlayerCasualties -= playerArtLost;
-}
-if (closestCity.stationedUnits.cavalry > 0 && remainingPlayerCasualties > 0) {
-playerCavLost = Math.min(closestCity.stationedUnits.cavalry, Math.ceil(remainingPlayerCasualties * 0.4));
-closestCity.stationedUnits.cavalry -= playerCavLost;
-remainingPlayerCasualties -= playerCavLost;
-}
-if (closestCity.stationedUnits.infantry > 0 && remainingPlayerCasualties > 0) {
-playerInfLost = Math.min(closestCity.stationedUnits.infantry, remainingPlayerCasualties);
-closestCity.stationedUnits.infantry -= playerInfLost;
-}
+    if (closestCity.stationedUnits.artillery > 0 && remainingPlayerCasualties > 0) {
+    playerArtLost = Math.min(closestCity.stationedUnits.artillery, Math.ceil(remainingPlayerCasualties * 0.3));
+    closestCity.stationedUnits.artillery -= playerArtLost;
+    remainingPlayerCasualties -= playerArtLost;
+    }
+    if (closestCity.stationedUnits.cavalry > 0 && remainingPlayerCasualties > 0) {
+    playerCavLost = Math.min(closestCity.stationedUnits.cavalry, Math.ceil(remainingPlayerCasualties * 0.4));
+    closestCity.stationedUnits.cavalry -= playerCavLost;
+    remainingPlayerCasualties -= playerCavLost;
+    }
+    if (closestCity.stationedUnits.infantry > 0 && remainingPlayerCasualties > 0) {
+    playerInfLost = Math.min(closestCity.stationedUnits.infantry, remainingPlayerCasualties);
+    closestCity.stationedUnits.infantry -= playerInfLost;
+    }
 
-const totalPlayerLosses = playerInfLost + playerCavLost + playerArtLost;
-const totalPlayerForces = closestCity.stationedUnits.infantry + closestCity.stationedUnits.cavalry + closestCity.stationedUnits.artillery + totalPlayerLosses;
-const casualtyPercent = (totalPlayerLosses / totalPlayerForces) * 100;
+    const totalPlayerLosses = playerInfLost + playerCavLost + playerArtLost;
+    const totalPlayerForces = closestCity.stationedUnits.infantry + closestCity.stationedUnits.cavalry + closestCity.stationedUnits.artillery + totalPlayerLosses;
+    const casualtyPercent = (totalPlayerLosses / totalPlayerForces) * 100;
 
-const didRetreat = game.retreatThreshold > 0 && casualtyPercent >= game.retreatThreshold;
+    const didRetreat = game.retreatThreshold > 0 && casualtyPercent >= game.retreatThreshold;
 
-if (didRetreat) {
-    const savedInf = Math.floor(playerInfLost * 0.5);
-    const savedCav = Math.floor(playerCavLost * 0.5);
-    const savedArt = Math.floor(playerArtLost * 0.5);
+    if (didRetreat) {
+        const savedInf = Math.floor(playerInfLost * 0.5);
+        const savedCav = Math.floor(playerCavLost * 0.5);
+        const savedArt = Math.floor(playerArtLost * 0.5);
 
-    closestCity.stationedUnits.infantry += savedInf;
-    closestCity.stationedUnits.cavalry += savedCav;
-    closestCity.stationedUnits.artillery += savedArt;
+        closestCity.stationedUnits.infantry += savedInf;
+        closestCity.stationedUnits.cavalry += savedCav;
+        closestCity.stationedUnits.artillery += savedArt;
 
-    AudioManager.playSFX('sfx-alert', 0.7);
-    addMessage(`TACTICAL RETREAT at ${casualtyPercent.toFixed(0)}% casualties!`, 'warning');
-    addMessage(`Saved: ${savedInf} Inf, ${savedCav} Cav, ${savedArt} Art`, 'info');
-    addMessage(`Lost: ${playerInfLost - savedInf} Inf, ${playerCavLost - savedCav} Cav, ${playerArtLost - savedArt} Art`, 'danger');
+        AudioManager.playSFX('sfx-alert', 0.7);
+        addMessage(`TACTICAL RETREAT at ${casualtyPercent.toFixed(0)}% casualties!`, 'warning');
+        addMessage(`Saved: ${savedInf} Inf, ${savedCav} Cav, ${savedArt} Art`, 'info');
+        addMessage(`Lost: ${playerInfLost - savedInf} Inf, ${playerCavLost - savedCav} Cav, ${playerArtLost - savedArt} Art`, 'danger');
 
-    tribal.population -= damageToTribal * 0.5;
-    addMessage(`Enemy casualties: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'warning');
+        tribal.population -= damageToTribal * 0.5;
+        addMessage(`Enemy casualties: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'warning');
 
-    awardCommanderXP(10);
+        awardCommanderXP(10);
+
+        game.ddrActive = false;
+        game.currentBattle = null;
+        game.relentlessUsed = false;
+        return;
+    }
+
+    tribal.population -= damageToTribal;
+
+    if (tribal.population <= 0) {
+        AudioManager.playSFX('sfx-explosion', 0.7);
+        addMessage(`${tribal.name} conquered! (DDR Bonus: +${game.ddrBonus}%)`, 'success');
+        addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
+        addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'success');
+        addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
+
+        let xpGained = 50;
+        if (prediction.risk === 'hard') xpGained = 75;
+        if (prediction.risk === 'suicide') xpGained = 100;
+        if (game.ddrBonus >= 80) xpGained += 25;
+
+        awardCommanderXP(xpGained);
+        addMessage(`+${xpGained} Commander XP (${game.commanderXP}/${game.commanderLevel * 100})`, 'info');
+
+        convertTribalCity(tribal);
+    } else {
+        addMessage(`Battle at ${tribal.name}! (DDR Bonus: +${game.ddrBonus}%)`, 'warning');
+        addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
+        addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art (${Math.floor(tribal.population)} pop remains)`, 'warning');
+        addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
+
+        if (tribal.units.infantry === 0 && tribal.units.cavalry === 0 && tribal.units.artillery === 0) {
+            addMessage(` ${tribal.name} has NO remaining military units!`, 'success');
+        }
+
+        awardCommanderXP(25);
+    }
 
     game.ddrActive = false;
     game.currentBattle = null;
     game.relentlessUsed = false;
-    return;
-}
 
-tribal.population -= damageToTribal;
+    const tribalEl = document.getElementById(`tribal-${tribal.id}`);
+    if (tribalEl) {
+    const rect = tribalEl.getBoundingClientRect();
+    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
+    const battleX = rect.left + rect.width / 2 - planetRect.left;
+    const battleY = rect.top + rect.height / 2 - planetRect.top;
 
-if (tribal.population <= 0) {
-    AudioManager.playSFX('sfx-explosion', 0.7);
-    addMessage(`${tribal.name} conquered! (DDR Bonus: +${game.ddrBonus}%)`, 'success');
-    addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
-    addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'success');
-    addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
+    const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
+    attackingCities.forEach(city => {
+        const distance = Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(city.y - city.y, 2));
+        const returnTime = Math.max(1500, Math.min(4000, distance * 60));
 
-    let xpGained = 50;
-    if (prediction.risk === 'hard') xpGained = 75;
-    if (prediction.risk === 'suicide') xpGained = 100;
-    if (game.ddrBonus >= 80) xpGained += 25;
+        const survivors = {
+            infantry: city.stationedUnits.infantry,
+            cavalry: city.stationedUnits.cavalry,
+            artillery: city.stationedUnits.artillery
+        };
 
-    awardCommanderXP(xpGained);
-    addMessage(`+${xpGained} Commander XP (${game.commanderXP}/${game.commanderLevel * 100})`, 'info');
-
-    convertTribalCity(tribal);
-} else {
-    addMessage(`Battle at ${tribal.name}! (DDR Bonus: +${game.ddrBonus}%)`, 'warning');
-    addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
-    addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art (${Math.floor(tribal.population)} pop remains)`, 'warning');
-    addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
-
-    if (tribal.units.infantry === 0 && tribal.units.cavalry === 0 && tribal.units.artillery === 0) {
-        addMessage(` ${tribal.name} has NO remaining military units!`, 'success');
+        if (survivors.infantry > 0 || survivors.cavalry > 0 || survivors.artillery > 0) {
+            animateUnitsReturning(battleX, battleY, city, survivors, returnTime);
+        }
+    });
     }
-
-    awardCommanderXP(25);
 }
 
-game.ddrActive = false;
-game.currentBattle = null;
-game.relentlessUsed = false;
 
-const tribalEl = document.getElementById(`tribal-${tribal.id}`);
-if (tribalEl) {
-const rect = tribalEl.getBoundingClientRect();
-const planetRect = document.getElementById('planet-view').getBoundingClientRect();
-const battleX = rect.left + rect.width / 2 - planetRect.left;
-const battleY = rect.top + rect.height / 2 - planetRect.top;
 
-const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
-attackingCities.forEach(city => {
-    const distance = Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(city.y - city.y, 2));
-    const returnTime = Math.max(1500, Math.min(4000, distance * 60));
+function convertTribalCity(tribal) {
+    tribal.isConverted = true;
 
-    const survivors = {
-        infantry: city.stationedUnits.infantry,
-        cavalry: city.stationedUnits.cavalry,
-        artillery: city.stationedUnits.artillery
+    tribal.units.infantry = 0;
+    tribal.units.cavalry = 0;
+    tribal.units.artillery = 0;
+
+    game.tribalRoads = game.tribalRoads.filter(road => {
+        if (road.from === tribal.id || road.to === tribal.id) {
+            const roadEl = document.getElementById(`tribal-road-${road.from}-${road.to}`);
+            if (roadEl) roadEl.remove();
+            return false;
+        }
+        return true;
+    });
+
+    const city = {
+        id: cityIdCounter++,
+        name: tribal.name + ' (Claimed)',
+        position: tribal.x, x: tribal.x, y: tribal.y,
+        population: Math.max(100, Math.floor(tribal.population * 0.6)),
+        maxPopulation: 750, warned: false,
+        zoneType: getZoneType(tribal.x),
+        isRebel: true, isConverted: true, upgradeLevel: 0,
+        happiness: 20, conquestRebellionTimer: 300,
+        stationedUnits: { infantry: 1, cavalry: 0, artillery: 0 },
+        tradeBoost: 0
     };
 
-    if (survivors.infantry > 0 || survivors.cavalry > 0 || survivors.artillery > 0) {
-        animateUnitsReturning(battleX, battleY, city, survivors, returnTime);
+            game.cities.push(city);
+
+            const cityEl = document.createElement('div');
+            cityEl.className = 'city city-hot city-rebel';
+            cityEl.id = `city-${city.id}`;
+            cityEl.style.left = `${city.x}%`;
+            cityEl.style.top = `${city.y}%`;
+            cityEl.style.transform = 'translate(-50%, -50%)';
+            cityEl.innerHTML = `<div class="city-label">${city.name}</div><div class="city-icon"></div><div class="population-bar"><div class="population-fill" style="width: ${(city.population/city.maxPopulation)*100}%"></div></div>`;
+            cityEl.onclick = (e) => { e.stopPropagation(); selectCity(city); };
+    generateCityBuildings(cityEl, city);
+
+            document.getElementById('planet-view').appendChild(cityEl);
+
+            const tribalEl = document.getElementById(`tribal-${tribal.id}`);
+    if (tribalEl) {
+    tribalEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
+    tribalEl.className = 'tribal-city tribal-city-converted';
     }
-});
+
+            game.tribalReputation = Math.max(0, game.tribalReputation - 20);
+            updateCityDisplay(city);
+
+    checkTribalDefeat();
 }
-}
-
-
-
-    function convertTribalCity(tribal) {
-tribal.isConverted = true;
-
-tribal.units.infantry = 0;
-tribal.units.cavalry = 0;
-tribal.units.artillery = 0;
-
-game.tribalRoads = game.tribalRoads.filter(road => {
-    if (road.from === tribal.id || road.to === tribal.id) {
-        const roadEl = document.getElementById(`tribal-road-${road.from}-${road.to}`);
-        if (roadEl) roadEl.remove();
-        return false;
-    }
-    return true;
-});
-
-const city = {
-    id: cityIdCounter++,
-    name: tribal.name + ' (Claimed)',
-    position: tribal.x, x: tribal.x, y: tribal.y,
-    population: Math.max(100, Math.floor(tribal.population * 0.6)),
-    maxPopulation: 750, warned: false,
-    zoneType: getZoneType(tribal.x),
-    isRebel: true, isConverted: true, upgradeLevel: 0,
-    happiness: 20, conquestRebellionTimer: 300,
-    stationedUnits: { infantry: 1, cavalry: 0, artillery: 0 },
-    tradeBoost: 0
-};
-
-        game.cities.push(city);
-
-        const cityEl = document.createElement('div');
-        cityEl.className = 'city city-hot city-rebel';
-        cityEl.id = `city-${city.id}`;
-        cityEl.style.left = `${city.x}%`;
-        cityEl.style.top = `${city.y}%`;
-        cityEl.style.transform = 'translate(-50%, -50%)';
-        cityEl.innerHTML = `<div class="city-label">${city.name}</div><div class="city-icon"></div><div class="population-bar"><div class="population-fill" style="width: ${(city.population/city.maxPopulation)*100}%"></div></div>`;
-        cityEl.onclick = (e) => { e.stopPropagation(); selectCity(city); };
-generateCityBuildings(cityEl, city);
-
-        document.getElementById('planet-view').appendChild(cityEl);
-
-        const tribalEl = document.getElementById(`tribal-${tribal.id}`);
-if (tribalEl) {
-tribalEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
-tribalEl.className = 'tribal-city tribal-city-converted';
-}
-
-        game.tribalReputation = Math.max(0, game.tribalReputation - 20);
-        updateCityDisplay(city);
-
-checkTribalDefeat();
-    }
 
 function checkTribalDefeat() {
 const activeTribalCities = game.tribalCities.filter(t => !t.isConverted);
@@ -3267,70 +3282,70 @@ if (activeTribalCities.length === 0 && !game.tribalsDefeated) {
 }
 }
 
-    function tribalExpansion() {
-if (game.tribalsDefeated) return;
+function tribalExpansion() {
+    if (game.tribalsDefeated) return;
 
-game.tribalRoadTimer++;
-game.tribalCityTimer++;
+    game.tribalRoadTimer++;
+    game.tribalCityTimer++;
 
-if (game.tribalRoadTimer >= TRIBAL_ROAD_INTERVAL) {
-    game.tribalRoadTimer = 0;
-    tribalBuildRoad();
-}
-
-if (game.tribalCityTimer >= TRIBAL_CITY_INTERVAL_MIN + Math.random() * (TRIBAL_CITY_INTERVAL_MAX - TRIBAL_CITY_INTERVAL_MIN)) {
-    game.tribalCityTimer = 0;
-    tribalBuildCity();
-}
-}
-
-
-    function tribalBuildRoad() {
-        const activeTribals = game.tribalCities.filter(t => !t.isConverted);
-        if (activeTribals.length < 2) return;
-
-        const t1 = activeTribals[Math.floor(Math.random() * activeTribals.length)];
-        const t2 = activeTribals[Math.floor(Math.random() * activeTribals.length)];
-
-        if (t1.id === t2.id) return;
-
-        const exists = game.tribalRoads.some(r =>
-            (r.from === t1.id && r.to === t2.id) || (r.from === t2.id && r.to === t1.id)
-        );
-
-        if (!exists && Math.sqrt(Math.pow(t1.x - t2.x, 2) + Math.pow(t1.y - t2.y, 2)) < 25) {
-            game.tribalRoads.push({ from: t1.id, to: t2.id });
-            createTribalRoad(t1, t2);
-            addMessage('Tribes built a road connecting their cities!', 'warning');
-        }
+    if (game.tribalRoadTimer >= TRIBAL_ROAD_INTERVAL) {
+        game.tribalRoadTimer = 0;
+        tribalBuildRoad();
     }
 
-    function tribalBuildCity() {
-const activeTribalCount = game.tribalCities.filter(t => !t.isConverted).length;
-if (activeTribalCount >= 10) {
-    game.tribalCityTimer = Math.random() * 500 + TRIBAL_CITY_INTERVAL_MIN;
-    return;
-}
+    if (game.tribalCityTimer >= TRIBAL_CITY_INTERVAL_MIN + Math.random() * (TRIBAL_CITY_INTERVAL_MAX - TRIBAL_CITY_INTERVAL_MIN)) {
+        game.tribalCityTimer = 0;
+        tribalBuildCity();
+    }
+    }
 
-const x = Math.min(TRIBAL_MAX_EXPANSION - 5, Math.random() * 15 + 8);
-const y = Math.random() * 70 + 15;
 
-const usedNames = game.tribalCities.map(t => t.name);
-const availableNames = TRIBAL_NAMES.filter(n => !usedNames.includes(n));
-const name = availableNames.length > 0
-    ? availableNames[Math.floor(Math.random() * availableNames.length)]
-    : `Tribe ${tribalIdCounter}`;
+        function tribalBuildRoad() {
+            const activeTribals = game.tribalCities.filter(t => !t.isConverted);
+            if (activeTribals.length < 2) return;
 
-const tribal = {
-    id: tribalIdCounter++,
-    name: name,
-    x, y, population: 250, isConverted: false,
-    units: { infantry: 0, cavalry: 2, artillery: 1 }
-};
+            const t1 = activeTribals[Math.floor(Math.random() * activeTribals.length)];
+            const t2 = activeTribals[Math.floor(Math.random() * activeTribals.length)];
 
-game.tribalCities.push(tribal);
-createTribalCityElement(tribal);
-addMessage('Tribes founded a new city!', 'danger');
+            if (t1.id === t2.id) return;
+
+            const exists = game.tribalRoads.some(r =>
+                (r.from === t1.id && r.to === t2.id) || (r.from === t2.id && r.to === t1.id)
+            );
+
+            if (!exists && Math.sqrt(Math.pow(t1.x - t2.x, 2) + Math.pow(t1.y - t2.y, 2)) < 25) {
+                game.tribalRoads.push({ from: t1.id, to: t2.id });
+                createTribalRoad(t1, t2);
+                addMessage('Tribes built a road connecting their cities!', 'warning');
+            }
+        }
+
+        function tribalBuildCity() {
+    const activeTribalCount = game.tribalCities.filter(t => !t.isConverted).length;
+    if (activeTribalCount >= 10) {
+        game.tribalCityTimer = Math.random() * 500 + TRIBAL_CITY_INTERVAL_MIN;
+        return;
+    }
+
+    const x = Math.min(TRIBAL_MAX_EXPANSION - 5, Math.random() * 15 + 8);
+    const y = Math.random() * 70 + 15;
+
+    const usedNames = game.tribalCities.map(t => t.name);
+    const availableNames = TRIBAL_NAMES.filter(n => !usedNames.includes(n));
+    const name = availableNames.length > 0
+        ? availableNames[Math.floor(Math.random() * availableNames.length)]
+        : `Tribe ${tribalIdCounter}`;
+
+    const tribal = {
+        id: tribalIdCounter++,
+        name: name,
+        x, y, population: 250, isConverted: false,
+        units: { infantry: 0, cavalry: 2, artillery: 1 }
+    };
+
+    game.tribalCities.push(tribal);
+    createTribalCityElement(tribal);
+    addMessage('Tribes founded a new city!', 'danger');
 }
 
 
@@ -3465,22 +3480,22 @@ AudioManager.playSFX('sfx-success', 0.6);
 }
 
 
-    function buildEmbassy() {
-if (!hasResources({ food: 200, metal: 200, energy: 100 }) || game.hasEmbassy || game.tribalRelation === 'war') return;
-spendResources({ food: 200, metal: 200, energy: 100 });
+function buildEmbassy() {
+    if (!hasResources({ food: 200, metal: 200, energy: 100 }) || game.hasEmbassy || game.tribalRelation === 'war') return;
+    spendResources({ food: 200, metal: 200, energy: 100 });
         game.hasEmbassy = true;
         game.tribalReputation = Math.min(100, game.tribalReputation + 20);
         addMessage('Embassy established!', 'success');
     }
 
     function denounceTribes() {
-if (game.tribalRelation === 'war') return;
-if (game.peaceTreatyCooldown > 0) {
+    if (game.tribalRelation === 'war') return;
+    if (game.peaceTreatyCooldown > 0) {
     addMessage('Cannot denounce during peace treaty!', 'warning');
     return;
-}
-game.tribalReputation = Math.max(0, game.tribalReputation - 30);
-addMessage('Denounced tribes! Relations worsened.', 'warning');
+    }
+    game.tribalReputation = Math.max(0, game.tribalReputation - 30);
+    addMessage('Denounced tribes! Relations worsened.', 'warning');
 }
 
 
@@ -3598,12 +3613,15 @@ document.getElementById('artillery-display').textContent = totalArtillery;
 
 
 document.getElementById('tribal-rep').textContent = game.tribalReputation;
+console.log("Before embassy bonus check:", typeof game.resources.food, typeof game.resources.metal, typeof game.resources.energy, game.resources);
 
 if (game.hasEmbassy) {
-    game.resources.food += 0.033;
-    game.resources.metal += 0.033;
-    game.resources.energy += 0.033;
+    game.resources.food += 1;
+    game.resources.metal += 1;
+    game.resources.energy += 1;
 }
+
+console.log('After embassy bonus:', game.resources.food, game.resources.metal, game.resources.energy);
 document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
 document.getElementById('build-city-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100});
 document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources({metal: 100, energy: 50}) || game.placingCity;
@@ -3643,7 +3661,7 @@ if (game.hasEmbassy) {
 const negotiateBtn = document.getElementById('negotiate-peace-btn');
 if (game.tribalRelation === 'war' && !game.peaceTalksActive && !game.tribalsDefeated) {
 negotiateBtn.style.display = 'block';
-negotiateBtn.disabled = game.resources < 1000;
+negotiateBtn.disabled = (game.resources.food + game.resources.metal + game.resources.energy) < 1000;
 } else {
 negotiateBtn.style.display = 'none';
 }
@@ -3684,7 +3702,7 @@ document.getElementById('trade-btn').disabled = true;
 const yearsLeft = Math.ceil(game.tribalTradeCooldown / 100);
 document.getElementById('trade-btn').textContent = `Trade (${yearsLeft}yr)`;
 } else {
-document.getElementById('trade-btn').disabled = game.resources < 100 || game.tribalRelation === 'war' || game.tribalsDefeated;
+document.getElementById('trade-btn').disabled = !hasResources({food: 60, metal: 30, energy: 10}) || game.tribalRelation === 'war' || game.tribalsDefeated;
 document.getElementById('trade-btn').textContent = 'Trade (100→+220)';
 }
 
