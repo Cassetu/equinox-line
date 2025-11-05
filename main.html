@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Equinox Line - V1.8</title>
+    <link href="style.css" rel="stylesheet"/>
+</head>
+<audio id="bg-music" loop>
+    <source src="https://cdn.pixabay.com/audio/2025/05/07/audio_94614bd872.mp3" type="audio/mpeg">
+</audio>
+<audio id="battle-music" loop>
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" type="audio/mpeg">
+</audio>
+<audio id="victory-music">
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-city-build" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2022/03/24/audio_3fb91eb9d4.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-resource-gather" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2025/04/18/audio_ad81e3ab85.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-attack" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2024/09/18/audio_52ea34712d.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-explosion" preload="auto">
+    <source src="https://freesound.org/data/previews/156/156031_2703579-lq.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-alert" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2024/02/07/audio_c059f11d86.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-success" preload="auto">
+    <source src="https://freesound.org/data/previews/270/270404_5123851-lq.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-error" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2022/11/21/audio_136661e554.mp3" type="audio/mpeg">
+</audio>
+<audio id="sfx-button-click" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2025/06/01/audio_d2ccbb367a.mp3" type="audio/mpeg">
+</audio>
+<button id="music-btn"
+        style="position: fixed; bottom: 20px; right: 200px; z-index: 10000; width: 50px; height: 50px; border-radius: 50%; background: rgba(0,0,0,0.7); border: 2px solid #00ff00; font-size: 24px; cursor: pointer;">
+    🔊
+</button>
+
+<script src="audio.js">
+</script>
+
+<body>
+<div id="game-container">
+    <div id="header">
+        <h1>🌐 EQUINOX LINE</h1>
+        <div id="stats">
+            <div class="stat">
+                <div class="stat-label">POPULATION</div>
+                <div class="stat-value" id="total-pop">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">FOOD</div>
+                <div class="stat-value" id="food-display">500</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">METAL</div>
+                <div class="stat-value" id="metal-display">300</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">ENERGY</div>
+                <div class="stat-value" id="energy-display">200</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">INFANTRY</div>
+                <div class="stat-value" id="infantry-display">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">CAVALRY</div>
+                <div class="stat-value" id="cavalry-display">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">ARTILLERY</div>
+                <div class="stat-value" id="artillery-display">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">TRIBAL REP</div>
+                <div class="stat-value" id="tribal-rep">50</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">YEAR</div>
+                <div class="stat-value" id="year">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="left-panel">
+        <div id="info-panel"></div>
+
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleCollapsible('laws')">
+                <h4>CITY LAWS</h4>
+                <span class="collapsible-indicator" id="laws-indicator">▼</span>
+            </div>
+            <div class="collapsible-content" id="laws-content">
+                <p style="font-size: 10px; margin-bottom: 8px;"><strong>Current:</strong> <span id="current-law-name">No Special Laws</span>
+                </p>
+                <div id="laws-container">
+                    <div class="law-option active" data-law="none">
+                        <div class="law-title">No Special Laws</div>
+                        <div class="law-effects">Balanced approach</div>
+                    </div>
+                    <div class="law-option" data-law="relaxed">
+                        <div class="law-title">Relaxed Work</div>
+                        <div class="law-effects">-20% res, +1 happiness/yr</div>
+                    </div>
+                    <div class="law-option" data-law="efficient">
+                        <div class="law-title">Efficiency</div>
+                        <div class="law-effects">+30% res, -0.5 happiness/yr</div>
+                    </div>
+                    <div class="law-option" data-law="productive">
+                        <div class="law-title">Production+</div>
+                        <div class="law-effects">+50% res, -1 happiness/yr</div>
+                    </div>
+                    <div class="law-option" data-law="harsh">
+                        <div class="law-title">Harsh Labor</div>
+                        <div class="law-effects">+100% res, -2 happiness/yr</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="collapsible-section">
+            <div class="collapsible-header" onclick="toggleCollapsible('philanthropy')">
+                <h4>PHILANTHROPY</h4>
+                <span class="collapsible-indicator" id="philanthropy-indicator">▼</span>
+            </div>
+            <div class="collapsible-content" id="philanthropy-content">
+                <p style="font-size: 10px; margin-bottom: 8px;">Boost all cities' happiness</p>
+                <button class="action-btn" id="charity-small-btn" style="font-size: 10px; padding: 5px;">Small Aid +5
+                    (30F, 15M, 5E)
+                </button>
+                <button class="action-btn" id="charity-medium-btn" style="font-size: 10px; padding: 5px;">Medium Aid +15
+                    (90F, 45M, 15E)
+                </button>
+                <button class="action-btn" id="charity-large-btn" style="font-size: 10px; padding: 5px;">Large Aid +35
+                    (240F, 120M, 40E)
+                </button>
+            </div>
+        </div>
+
+        <div class="military-section">
+            <h4>RECRUITMENT (Select City First)</h4>
+            <div class="unit-type">
+                <div class="unit-info">
+                    <div class="unit-name">Infantry</div>
+                    <div class="unit-stats">Atk:5 Def:3</div>
+                </div>
+            </div>
+            <button class="action-btn" id="recruit-infantry-btn" style="font-size: 10px; padding: 5px;">Recruit Infantry
+                (50F, 50M, 50pop)
+            </button>
+
+            <div class="unit-type" style="margin-top: 6px;">
+                <div class="unit-info">
+                    <div class="unit-name">Cavalry</div>
+                    <div class="unit-stats">Atk:12 Def:5</div>
+                </div>
+            </div>
+            <button class="action-btn" id="recruit-cavalry-btn" style="font-size: 10px; padding: 5px;">Recruit Cavalry
+                (100F, 100M, 50E, 100pop)
+            </button>
+
+            <div class="unit-type" style="margin-top: 6px;">
+                <div class="unit-info">
+                    <div class="unit-name">Artillery</div>
+                    <div class="unit-stats">Atk:20 Def:2</div>
+                </div>
+            </div>
+            <button class="action-btn" id="recruit-artillery-btn" style="font-size: 10px; padding: 5px;">Recruit
+                Artillery (50F, 300M, 150E, 10pop)
+            </button>
+        </div>
+    </div>
+
+
+    <div id="main-game">
+        <div id="planet-view">
+            <div class="terrain-layer" id="terrain-container"></div>
+            <div id="habitable-zone"></div>
+            <div class="city-radius" id="placement-radius"></div>
+            <div class="placement-preview" id="placement-preview">
+                <div class="placement-preview-icon"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="diplomacy-panel">
+        <h3>Tribal Civilization</h3>
+        <p id="tribal-status" style="font-size: 11px;">Status: Neutral</p>
+        <div class="reputation-bar">
+            <div class="reputation-fill" id="reputation-fill" style="width: 50%"></div>
+            <div class="reputation-text" id="reputation-text">50/100</div>
+        </div>
+        <p style="font-size: 9px; margin: 8px 0;">Tribes expand every 10yr (road) / 30-40yr (city)</p>
+
+        <div style="background: rgba(255,68,0,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+        </div>
+
+        <div class="diplomacy-actions">
+            <button class="diplomacy-btn" id="trade-btn">Trade (60F, 30M, 10E → +10 rep)</button>
+            <button class="diplomacy-btn" id="embassy-btn">Embassy (200F, 200M, 100E)</button>
+            <button class="diplomacy-btn" id="denounce-btn">Denounce (-30)</button>
+            <button class="diplomacy-btn" id="declare-war-btn">War</button>
+            <button class="diplomacy-btn" id="negotiate-peace-btn" style="display: none;">Negotiate Peace (1000)
+            </button>
+        </div>
+        <p style="font-size: 8px; margin-top: 8px; opacity: 0.7;">
+            <strong>Relations:</strong> 0-20: War | 21-40: Hostile | 41-60: Neutral | 61-80: Friendly | 81-100: Allied
+        </p>
+
+        <div id="messages" style="margin-top: 20px;"></div>
+    </div>
+
+
+    <div id="controls">
+        <button id="gather-btn">Gather +5
+            <div class="button-cooldown" id="gather-cooldown"></div>
+        </button>
+        <button id="build-city-btn">Place City (200F, 200M, 100E)</button>
+        <button disabled id="build-road-btn">Build Road (100M, 50E)</button>
+        <button id="spaceport-btn">Spaceport</button>
+        <button id="pause-btn">Pause</button>
+    </div>
+
+    <div id="spaceport-panel">
+        <h3>SPACEPORT PROJECT</h3>
+        <p>Evacuate to a stable planet!</p>
+        <p><strong>Requirements:</strong></p>
+        <p>Population: <span id="sp-pop-current">0</span>/<span id="sp-pop-req">2000</span> | Resources: <span
+                id="sp-res-current">0</span>/<span id="sp-res-req">10000</span></p>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="spaceport-progress-bar" style="width: 0%">0%</div>
+        </div>
+        <p style="font-size: 9px; opacity: 0.8;">Costs 500 res/year once started</p>
+        <button class="action-btn" id="start-spaceport-btn" style="font-size: 11px;">Start Construction</button>
+    </div>
+
+    <div id="ddr-overlay">
+        <div id="ddr-container">
+            <div id="ddr-title"></div>
+            <div id="ddr-combo">Combo: 0 | Bonus: +0%</div>
+            <div id="ddr-arrows">
+                <div class="ddr-arrow" data-key="ArrowLeft">←</div>
+                <div class="ddr-arrow" data-key="ArrowUp">↑</div>
+                <div class="ddr-arrow" data-key="ArrowDown">↓</div>
+                <div class="ddr-arrow" data-key="ArrowRight">→</div>
+            </div>
+            <div id="ddr-timer">Time remaining: 10s</div>
+            <button id="reinforcement-btn" onclick="callReinforcements()"
+                    style="margin-top: 15px; padding: 8px 16px; font-size: 12px;">
+                Call Reinforcements (300 res)
+            </button>
+        </div>
+    </div>
+
+
+    <div id="battle-planning">
+        <h2>Battle Planning</h2>
+
+        <div class="risk-assessment" id="risk-display"></div>
+
+        <div class="battle-info" id="battle-intel"></div>
+
+        <h3 style="color: #ffaa00; font-size: 14px; margin-top: 15px;">Formation</h3>
+        <div class="formation-selector">
+            <div class="formation-option" data-formation="offensive">
+                <div class="formation-name">Offensive</div>
+                <div class="formation-effect">+20% ATK, -10% DEF</div>
+            </div>
+            <div class="formation-option selected" data-formation="balanced">
+                <div class="formation-name">Balanced</div>
+                <div class="formation-effect">No modifiers</div>
+            </div>
+            <div class="formation-option" data-formation="defensive">
+                <div class="formation-name">Defensive</div>
+                <div class="formation-effect">-10% ATK, +20% DEF</div>
+            </div>
+        </div>
+
+        <div class="retreat-slider">
+            <h3 style="color: #ffaa00; font-size: 14px;">Auto-Retreat Threshold</h3>
+            <input id="retreat-slider" max="75" min="0" step="25" type="range" value="50">
+            <div style="font-size: 12px; text-align: center;">Retreat at <span id="retreat-value">50</span>% casualties
+            </div>
+        </div>
+
+        <div class="perk-selection" id="perk-selection-container"></div>
+
+        <div class="planning-buttons">
+            <button id="scout-btn" onclick="sendScout()">Scout (50 res)</button>
+            <button onclick="cancelBattlePlanning()">Cancel</button>
+            <button onclick="beginBattle()" style="background: #ff4400; border-color: #ff4400;">ATTACK!</button>
+        </div>
+    </div>
+
+    <div id="weather-indicator"></div>
+    <div id="phase-indicator"></div>
+
+
+    <div id="peace-demand-popup"
+         style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 3px solid #ffaa00; border-radius: 15px; padding: 30px; max-width: 600px; z-index: 9998; display: none; text-align: center;">
+        <h2 style="color: #ffaa00; margin-bottom: 15px;">Tribal Demand</h2>
+        <p id="peace-demand-text" style="font-size: 16px; margin: 20px 0;"></p>
+        <p id="peace-demand-consequence" style="font-size: 12px; opacity: 0.8; margin: 15px 0;"></p>
+        <p style="font-size: 14px; margin: 20px 0;">Year <span id="peace-talks-year">1</span> of 3</p>
+        <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+            <button onclick="respondToPeaceDemand(true)"
+                    style="background: #4CAF50; border-color: #4CAF50; padding: 10px 20px;">Accept
+            </button>
+            <button onclick="respondToPeaceDemand(false)"
+                    style="background: #ff4400; border-color: #ff4400; padding: 10px 20px;">Reject
+            </button>
+        </div>
+    </div>
+
+    <div id="tutorial">
+        <h2>Welcome to Equinox Line</h2>
+        <p>Manage civilization on a unique planet with a shifting habitable zone!</p>
+
+        <h3>Resources (FME System):</h3>
+        <ul>
+            <li><strong>Food (F):</strong> Supports population growth and unit recruitment</li>
+            <li><strong>Metal (M):</strong> Used for buildings, roads, and military equipment</li>
+            <li><strong>Energy (E):</strong> Powers advanced technology and infrastructure</li>
+            <li>All costs and production show specific FME amounts (e.g., "100F, 50M, 25E")</li>
+            <li>Cities generate all three resources based on their location and nearby features</li>
+        </ul>
+
+        <h3>Victory Condition:</h3>
+        <ul>
+            <li>Reach 2000 population & 10,000 total resources (F+M+E combined)</li>
+            <li>Build the Spaceport and complete construction</li>
+            <li>Spaceport costs 500 total resources/year during construction</li>
+        </ul>
+
+        <h3>Terrain Features & Resources:</h3>
+        <ul>
+            <li><strong>Sacred Groves:</strong> +15F, +5E - Best food source!</li>
+            <li><strong>Lakes:</strong> +10F, +5E - Excellent for food production</li>
+            <li><strong>Forests:</strong> +5F, +3M - Balanced resource mix</li>
+            <li><strong>Plains:</strong> +4F, +2M, +1 pop/yr - Good for growth</li>
+            <li><strong>Canyons:</strong> +8M, +2E - Best for metal production</li>
+            <li><strong>Ice Fields:</strong> +3M, +2E - Cold zone resources</li>
+            <li><strong>Deserts:</strong> -2 pop/yr - Avoid building near these!</li>
+            <li><strong>Feature Sharing:</strong> Multiple cities near the same feature split its bonuses</li>
+        </ul>
+
+        <h3>Combat System:</h3>
+        <ul>
+            <li><strong>DDR Battles:</strong> Attack tribal cities to trigger rhythm-based combat</li>
+            <li>Press arrow keys when they light up - build combos for damage multipliers (up to +100%)</li>
+            <li>Your troops march from the nearest city (or select multiple cities)</li>
+            <li><strong>Reinforcements:</strong> Tribals send troops from nearby allies to cities under attack</li>
+            <li><strong>Defense:</strong> Station units in your cities to protect against tribal counterattacks</li>
+        </ul>
+
+        <h3>Tribal Diplomacy:</h3>
+        <ul>
+            <li><strong>Reputation Matters:</strong> 0-20: War | 21-40: Hostile | 41-60: Neutral | 61-80: Friendly |
+                81-100: Allied
+            </li>
+            <li><strong>Building too close</strong> (within 10% distance) angers tribes (-10 rep per city)</li>
+            <li><strong>Military buildup</strong> (over 10 of any unit type) alarms them (-10 rep, once per type)</li>
+            <li><strong>TRIBAL INVASION:</strong> If they have 50+ troops, you have 3+ cities nearby, and rep < 50,
+                they'll declare war!
+            </li>
+            <li>Tribals grow population slowly and recruit their own military units</li>
+            <li>They reposition forces to frontline cities when you expand near them</li>
+            <li>Tribes expand: roads every 10 years, cities every 30-40 years</li>
+        </ul>
+
+        <h3>Happiness System:</h3>
+        <ul>
+            <li><strong>In Habitable Zone:</strong> Happiness rises to 75 naturally</li>
+            <li><strong>Outside Zone:</strong> Happiness falls to 25 naturally</li>
+            <li><strong>Laws & Battles:</strong> Can push happiness below 25 or above 75</li>
+            <li><strong>At 0 Happiness:</strong> City rebels and stops producing!</li>
+            <li><strong>War Declaration:</strong> All cities lose 25 happiness immediately</li>
+            <li><strong>Military Oppression:</strong> Over 4 units in a city decreases happiness</li>
+            <li>Use Philanthropy to boost happiness across all cities</li>
+        </ul>
+
+        <h3>City Management:</h3>
+        <ul>
+            <li><strong>Placement:</strong> Cities cost 200F, 200M, 100E and must be at least 5% apart</li>
+            <li><strong>Fortification:</strong> Upgrade cities (Lvl 1: 100F, 150M, 50E | Lvl 2: 200F, 300M, 100E) to
+                reduce population loss and improve defense
+            </li>
+            <li><strong>Migration:</strong> Move 50 population from endangered cities to safe ones (30F, 10M, 5E)</li>
+            <li><strong>Roads:</strong> Connect cities for +20% resource bonus (100M, 50E per road)</li>
+            <li><strong>Features:</strong> Cities gain bonuses from ALL nearby terrain features - place strategically!
+            </li>
+            <li><strong>Conquered Cities:</strong> Start in rebellion for 30 seconds, produce 70% resources during this
+                time
+            </li>
+        </ul>
+
+        <h3>City Specializations:</h3>
+        <ul>
+            <li><strong>Military Fortress (500 total):</strong> 25% cheaper units, -20% resources, -10% growth</li>
+            <li><strong>Trade Hub (400 total):</strong> +50% resources, but units cost 20% more</li>
+            <li><strong>Research Center (600 total):</strong> +20% resources, +30% population growth</li>
+            <li>Specializations affect resource production ratios (see tooltips for details)</li>
+        </ul>
+
+        <h3>Military Units:</h3>
+        <ul>
+            <li><strong>Infantry:</strong> 5 ATK / 3 DEF - 50F, 50M, 0E, 50 population</li>
+            <li><strong>Cavalry:</strong> 12 ATK / 5 DEF - 100F, 100M, 50E, 100 population</li>
+            <li><strong>Artillery:</strong> 20 ATK / 2 DEF - 50F, 300M, 150E, 10 population</li>
+            <li>Station units in cities for defense - withdraw them when needed</li>
+            <li>Max 8 units per city - over 4 units causes happiness penalties</li>
+        </ul>
+
+        <h3>City Laws:</h3>
+        <ul>
+            <li><strong>Relaxed Work:</strong> -20% resources, +1 happiness/yr</li>
+            <li><strong>Efficiency:</strong> +30% resources, -0.5 happiness/yr</li>
+            <li><strong>Production+:</strong> +50% resources, -1 happiness/yr</li>
+            <li><strong>Harsh Labor:</strong> +100% resources, -2 happiness/yr</li>
+        </ul>
+
+        <h3>Controls:</h3>
+        <ul>
+            <li><strong>ESC:</strong> Cancel city/road placement or close panels</li>
+            <li><strong>Arrow Keys:</strong> Use during DDR battles</li>
+            <li><strong>Click:</strong> Select cities, tribals, or place buildings</li>
+            <li><strong>Scroll:</strong> Scroll side panels to see all options</li>
+            <li><strong>🔊 Button:</strong> Toggle music on/off (bottom right)</li>
+        </ul>
+
+        <h3>Pro Tips:</h3>
+        <ul>
+            <li>Build cities near Sacred Groves for maximum food production</li>
+            <li>Place cities near canyons when you need metal for military/infrastructure</li>
+            <li>Balance your resource income - don't neglect energy for advanced tech!</li>
+            <li>Roads are crucial - connected cities produce significantly more resources</li>
+            <li>Monitor tribal reputation carefully - losing it can trigger a devastating invasion</li>
+            <li>Station defense forces in vulnerable cities near tribal territory</li>
+            <li>Balance laws carefully - harsh labor gives resources but risks rebellion</li>
+            <li>Feature sharing divides bonuses - spread cities out for maximum efficiency</li>
+            <li>Specialize cities based on nearby terrain (Military near canyons, Trade near groves)</li>
+        </ul>
+
+        <button onclick="startGame()" style="width: 100%; margin-top: 20px; padding: 12px; font-size: 14px;">Start
+            Game
+        </button>
+    </div>
+
+
+    <div id="game-over">
+        <h2>Civilization Collapsed</h2>
+        <p id="game-over-msg"></p>
+        <button onclick="location.reload()" style="margin-top: 20px;">Play Again</button>
+    </div>
+</div>
+
+<script src="game.js">
+</script>
+</body>
+</html>
