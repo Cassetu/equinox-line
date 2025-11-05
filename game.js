@@ -190,8 +190,15 @@ const game = {
 };
 
 
-    let cityIdCounter = 0, roadIdCounter = 0, tribalIdCounter = 0, gameLoop;
+let cityIdCounter = 0, roadIdCounter = 0, tribalIdCounter = 0, gameLoop;
 let usedNames = [];
+let mapZoom = 0.5;
+let mapPanX = 0;
+let mapPanY = 0;
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+
 
 const CITY_NAMES = [
 'Aurora', 'Nexus', 'Haven', 'Meridian', 'Eclipse', 'Solaris', 'Twilight', 'Umbra', 'Zenith', 'Nova', 'Celestia', 'Radiance',
@@ -570,44 +577,50 @@ function callReinforcements() {
         return 0.5;
     }
 
-    function getCityFeatureBonus(city) {
-let foodBonus = 0;
-let metalBonus = 0;
-let energyBonus = 0;
-let growthPenalty = 0;
-const nearbyFeatures = [];
+function getCityFeatureBonus(city) {
+    let foodBonus = 0;
+    let metalBonus = 0;
+    let energyBonus = 0;
+    let growthPenalty = 0;
+    const nearbyFeatures = [];
 
-game.features.forEach(feature => {
-    const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
-    if (dist < 12) {
-        const citiesNearFeature = game.cities.filter(c => {
-            const d = Math.sqrt(Math.pow(c.x - feature.x, 2) + Math.pow(c.y - feature.y, 2));
-            return d < 12 && !c.isRebel;
-        });
+    game.features.forEach(feature => {
+        const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
+        if (dist < 12) {
+            const citiesNearFeature = game.cities.filter(c => {
+                const d = Math.sqrt(Math.pow(c.x - feature.x, 2) + Math.pow(c.y - feature.y, 2));
+                return d < 12 && !c.isRebel;
+            });
 
-        const shareCount = Math.max(1, citiesNearFeature.length);
-        const sharedFoodBonus = feature.foodBonus / shareCount;
-        const sharedMetalBonus = feature.metalBonus / shareCount;
-        const sharedEnergyBonus = feature.energyBonus / shareCount;
-        const sharedGrowthPenalty = feature.growthPenalty / shareCount;
+            const shareCount = Math.max(1, citiesNearFeature.length);
+            const sharedFoodBonus = (feature.foodBonus || 0) / shareCount;
+            const sharedMetalBonus = (feature.metalBonus || 0) / shareCount;
+            const sharedEnergyBonus = (feature.energyBonus || 0) / shareCount;
+            const sharedGrowthPenalty = (feature.growthPenalty || 0) / shareCount;
 
-        foodBonus += sharedFoodBonus;
-        metalBonus += sharedMetalBonus;
-        energyBonus += sharedEnergyBonus;
-        growthPenalty += sharedGrowthPenalty;
+            foodBonus += sharedFoodBonus;
+            metalBonus += sharedMetalBonus;
+            energyBonus += sharedEnergyBonus;
+            growthPenalty += sharedGrowthPenalty;
 
-        nearbyFeatures.push({
-            ...feature,
-            sharedWith: shareCount,
-            actualFoodBonus: sharedFoodBonus,
-            actualMetalBonus: sharedMetalBonus,
-            actualEnergyBonus: sharedEnergyBonus,
-            actualGrowthPenalty: sharedGrowthPenalty
-        });
-    }
-});
+            nearbyFeatures.push({
+                ...feature,
+                sharedWith: shareCount,
+                actualFoodBonus: sharedFoodBonus,
+                actualMetalBonus: sharedMetalBonus,
+                actualEnergyBonus: sharedEnergyBonus,
+                actualGrowthPenalty: sharedGrowthPenalty
+            });
+        }
+    });
 
-return { foodBonus, metalBonus, energyBonus, growthPenalty, nearbyFeatures };
+    return {
+        foodBonus: foodBonus || 0,
+        metalBonus: metalBonus || 0,
+        energyBonus: energyBonus || 0,
+        growthPenalty: growthPenalty || 0,
+        nearbyFeatures
+    };
 }
 
 function updateRoadPosition(roadEl, city1Id, city2Id) {
@@ -1015,7 +1028,10 @@ updateHabitableZone();
 console.log('After habitable zone:', game.resources.food, game.resources.metal, game.resources.energy);
 
 if (gameLoop) clearInterval(gameLoop);
-gameLoop = setInterval(update, 100);
+    gameLoop = setInterval(update, 100);
+
+    applyMapTransform();
+    updateMinimap();
 }
 
 function update() {
@@ -1135,8 +1151,8 @@ game.tribalReputation = 21;
 
         const totalStationedUnits = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
         if (totalStationedUnits > 4) {
-        const militaryOppression = (totalStationedUnits - 4) * 0.05;
-        city.happiness -= militaryOppression;
+            const militaryOppression = (totalStationedUnits - 4) * 0.05;
+            city.happiness -= militaryOppression;
         }
 
         const lawHappinessChange = lawEffect.happinessPenalty * 0.01;
@@ -1145,47 +1161,53 @@ game.tribalReputation = 21;
         city.happiness = Math.max(0, Math.min(100, city.happiness));
 
         if (city.happiness <= 0 && !city.isRebel && city.conquestRebellionTimer === 0) {
-        city.isRebel = true;
-        addMessage(` ${city.name} has REBELLED due to zero happiness!`, 'danger');
-        AudioManager.playSFX('sfx-alert', 0.7);
+            city.isRebel = true;
+            addMessage(` ${city.name} has REBELLED due to zero happiness!`, 'danger');
+            AudioManager.playSFX('sfx-alert', 0.7);
         }
 
-                if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
-        const baseGrowth = city.isConverted ? 0.3 : 0.5;
-        const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
-        const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod;
-        city.population += Math.max(0.1, growthRate);
+        if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
+            const baseGrowth = city.isConverted ? 0.3 : 0.5;
+            const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
+            const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod;
 
-        const popRatio = city.population / city.maxPopulation;
-        const popProductionBonus = 0.5 + (popRatio * 0.5);
+            city.population += Math.max(0.1, growthRate);
 
-        const baseRes = 0.1;
-        const conversionPenalty = city.isConverted ? 0.7 : 1.0;
-        const lawBonus = 1 + lawEffect.resourceBonus;
-        const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
-        const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
-        const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
-        const baseProduction = baseRes + (featureBonus.resourceBonus * 0.01);
+            const popRatio = city.population / city.maxPopulation;
+            const popProductionBonus = 0.5 + (popRatio * 0.5);
 
-        if (city.specialization === 'trade') {
-        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
-        } else if (city.specialization === 'research') {
-        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.2;
-        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.5;
-        } else if (city.specialization === 'military') {
-        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.5;
-        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.1;
-        } else {
-        game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
-        game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
-        game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
+            const baseRes = 0.1;
+            const conversionPenalty = city.isConverted ? 0.7 : 1.0;
+            const lawBonus = 1 + lawEffect.resourceBonus;
+            const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
+            const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
+            const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
+            const baseProduction = baseRes;
+
+            if (city.specialization === 'trade') {
+                game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+                game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+                game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
+            } else if (city.specialization === 'research') {
+                game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.2;
+                game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+                game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.5;
+            } else if (city.specialization === 'military') {
+                game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+                game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.5;
+                game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.1;
+            } else {
+                game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
+                game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
+                game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
         }
 
-
+        if (game.hasEmbassy) {
+            const embassyBonus = 0.01;
+            game.resources.food += embassyBonus;
+            game.resources.metal += embassyBonus;
+            game.resources.energy += embassyBonus;
+        }
 
         if (city.tradeBoost > 0) {
         city.tradeBoost--;
@@ -1271,9 +1293,11 @@ game.tribalReputation = 21;
     }
     }
     }
+    if (Math.floor(game.year * 10) % 5 === 0) {
+        updateMinimap();
+    }
 
     updateUI();
-
 }
 
 function showPeaceDemand(demand, year) {
@@ -2026,13 +2050,13 @@ cityEl.insertBefore(buildingsContainer, cityEl.firstChild);
 }
 
 
-    function gatherResources() {
-if (game.gatherCooldown > 0) return;
-game.resources.food += 3;
-game.resources.metal += 1;
-game.resources.energy += 1;
-game.gatherCooldown = 10;
-AudioManager.playSFX('sfx-resource-gather', 0.4);
+function gatherResources() {
+    if (game.gatherCooldown > 0) return;
+    game.resources.food += 3;
+    game.resources.metal += 1;
+    game.resources.energy += 1;
+    game.gatherCooldown = 10;
+    AudioManager.playSFX('sfx-resource-gather', 0.4);
 }
 
 function hasResources(cost) {
@@ -3028,7 +3052,65 @@ function callReinforcements() {
     game.ddrSequence.push('ArrowUp', 'ArrowRight');
 }
 
+function updateZoom(delta) {
+    const oldZoom = mapZoom;
+    mapZoom = Math.max(0.3, Math.min(2, mapZoom + delta));
 
+    const planetView = document.getElementById('planet-view');
+    const mainGame = document.getElementById('main-game');
+    const rect = mainGame.getBoundingClientRect();
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    mapPanX = centerX - (centerX - mapPanX) * (mapZoom / oldZoom);
+    mapPanY = centerY - (centerY - mapPanY) * (mapZoom / oldZoom);
+
+    applyMapTransform();
+    updateMinimap();
+}
+
+function applyMapTransform() {
+    const planetView = document.getElementById('planet-view');
+    planetView.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapZoom})`;
+}
+
+function updateMinimap() {
+    const minimap = document.getElementById('minimap');
+    minimap.innerHTML = '<div class="minimap-viewport"></div>';
+
+    game.cities.forEach(city => {
+        const dot = document.createElement('div');
+        dot.className = 'minimap-city';
+        dot.style.left = `${city.x}%`;
+        dot.style.top = `${city.y}%`;
+        minimap.appendChild(dot);
+    });
+
+    game.tribalCities.forEach(tribal => {
+        if (!tribal.isConverted) {
+            const dot = document.createElement('div');
+            dot.className = 'minimap-tribal';
+            dot.style.left = `${tribal.x}%`;
+            dot.style.top = `${tribal.y}%`;
+            minimap.appendChild(dot);
+        }
+    });
+
+    const mainGame = document.getElementById('main-game');
+    const rect = mainGame.getBoundingClientRect();
+    const viewport = minimap.querySelector('.minimap-viewport');
+
+    const viewWidth = (rect.width / (rect.width * 20 * mapZoom)) * 100;
+    const viewHeight = (rect.height / (rect.height * 20 * mapZoom)) * 100;
+    const viewX = (-mapPanX / (rect.width * 20 * mapZoom)) * 100;
+    const viewY = (-mapPanY / (rect.height * 20 * mapZoom)) * 100;
+
+    viewport.style.left = `${viewX}%`;
+    viewport.style.top = `${viewY}%`;
+    viewport.style.width = `${viewWidth}%`;
+    viewport.style.height = `${viewHeight}%`;
+}
 
 function endEnhancedDDRBattle() {
     if (game.ddrTimeout) {
@@ -3592,7 +3674,7 @@ AudioManager.playSFX('sfx-alert', 0.7);
         updateSpaceportPanel();
     }
 
-    function updateUI() {
+function updateUI() {
 const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
 
 document.getElementById('year').textContent = Math.floor(game.year);
@@ -3613,13 +3695,6 @@ document.getElementById('artillery-display').textContent = totalArtillery;
 
 
 document.getElementById('tribal-rep').textContent = game.tribalReputation;
-console.log("Before embassy bonus check:", typeof game.resources.food, typeof game.resources.metal, typeof game.resources.energy, game.resources);
-
-if (game.hasEmbassy) {
-    game.resources.food += 1;
-    game.resources.metal += 1;
-    game.resources.energy += 1;
-}
 
 console.log('After embassy bonus:', game.resources.food, game.resources.metal, game.resources.energy);
 document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
@@ -3749,6 +3824,33 @@ option.addEventListener('click', () => {
     }
 });
 });
+document.getElementById('zoom-in-btn').onclick = () => updateZoom(0.1);
+document.getElementById('zoom-out-btn').onclick = () => updateZoom(-0.1);
+
+const mainGame = document.getElementById('main-game');
+mainGame.addEventListener('mousedown', (e) => {
+    if (game.placingCity) return;
+    isDragging = true;
+    dragStartX = e.clientX - mapPanX;
+    dragStartY = e.clientY - mapPanY;
+});
+
+mainGame.addEventListener('mousemove', (e) => {
+    if (isDragging && !game.placingCity) {
+        mapPanX = e.clientX - dragStartX;
+        mapPanY = e.clientY - dragStartY;
+        applyMapTransform();
+    }
+});
+
+mainGame.addEventListener('mouseup', () => {
+    isDragging = false;
+});
+
+mainGame.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    updateZoom(e.deltaY > 0 ? -0.05 : 0.05);
+}, { passive: false });
 
 document.getElementById('retreat-slider').addEventListener('input', (e) => {
 game.retreatThreshold = parseInt(e.target.value);
