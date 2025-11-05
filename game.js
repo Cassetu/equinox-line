@@ -1025,7 +1025,6 @@ generateTribalCities();
 addMessage('Build your first city in the habitable zone!', 'info');
 addMessage('Tribes will expand over time...', 'warning');
 updateHabitableZone();
-console.log('After habitable zone:', game.resources.food, game.resources.metal, game.resources.energy);
 
 if (gameLoop) clearInterval(gameLoop);
     gameLoop = setInterval(update, 100);
@@ -1078,9 +1077,7 @@ function update() {
             game.spaceportBuilding = false;
         }
     }
-    console.log('After spaceport section:', game.resources.food, game.resources.metal, game.resources.energy);
 tribalExpansion();
-console.log('After tribal expansion:', game.resources.food, game.resources.metal, game.resources.energy);
 tribalMilitaryManagement();
 checkTribalWarDeclaration();
 if (game.tribalRelation === 'war' && !game.tribalsDefeated && Math.random() < 0.01) {
@@ -1717,13 +1714,37 @@ frontline.units.artillery += actualTransferArt;
 function generateResourceFeatures() {
 game.features = [];
 
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < 30; i++) {
     const x = Math.random() * 25 + 5;
     const y = Math.random() * 80 + 10;
     const rand = Math.random();
     let type, foodBonus, metalBonus, energyBonus, growthPenalty;
 
-    if (rand > 0.6) {
+    if (rand > 0.9) {
+        type = 'volcano';
+        foodBonus = 0;
+        metalBonus = 15;
+        energyBonus = 10;
+        growthPenalty = -3;
+    } else if (rand > 0.8) {
+        type = 'oasis';
+        foodBonus = 12;
+        metalBonus = 0;
+        energyBonus = 3;
+        growthPenalty = 2;
+    } else if (rand > 0.7) {
+        type = 'ruins';
+        foodBonus = 3;
+        metalBonus = 8;
+        energyBonus = 8;
+        growthPenalty = 0;
+    } else if (rand > 0.55) {
+        type = 'quarry';
+        foodBonus = 0;
+        metalBonus = 12;
+        energyBonus = 0;
+        growthPenalty = -1;
+    } else if (rand > 0.4) {
         type = 'canyon';
         foodBonus = 0;
         metalBonus = 8;
@@ -1741,58 +1762,105 @@ for (let i = 0; i < 8; i++) {
     createFeatureElement(game.features[game.features.length - 1]);
 }
 
-for (let i = 0; i < 12; i++) {
+for (let i = 0; i < 40; i++) {
     const x = Math.random() * 35 + 30;
     const y = Math.random() * 80 + 10;
     const rand = Math.random();
     let type, foodBonus, metalBonus, energyBonus, growthPenalty;
 
-    if (rand > 0.75) {
+    if (rand > 0.92) {
         type = 'grove';
         foodBonus = 15;
         metalBonus = 0;
         energyBonus = 5;
         growthPenalty = 0;
-    } else if (rand > 0.4) {
+    } else if (rand > 0.84) {
+        type = 'geothermal';
+        foodBonus = 0;
+        metalBonus = 5;
+        energyBonus = 15;
+        growthPenalty = 0;
+    } else if (rand > 0.76) {
+        type = 'orchard';
+        foodBonus = 10;
+        metalBonus = 0;
+        energyBonus = 2;
+        growthPenalty = 1;
+    } else if (rand > 0.68) {
+        type = 'mine';
+        foodBonus = 0;
+        metalBonus = 10;
+        energyBonus = 3;
+        growthPenalty = -1;
+    } else if (rand > 0.58) {
         type = 'lake';
         foodBonus = 10;
         metalBonus = 0;
         energyBonus = 5;
         growthPenalty = 0;
-    } else if (rand > 0.35) {
+    } else if (rand > 0.45) {
         type = 'forest';
         foodBonus = 5;
         metalBonus = 3;
         energyBonus = 0;
         growthPenalty = 0;
-    } else {
+    } else if (rand > 0.3) {
         type = 'plains';
         foodBonus = 4;
         metalBonus = 2;
         energyBonus = 0;
         growthPenalty = 1;
+    } else {
+        type = 'meadow';
+        foodBonus = 8;
+        metalBonus = 1;
+        energyBonus = 1;
+        growthPenalty = 2;
     }
 
     game.features.push({ type, x, y, foodBonus, metalBonus, energyBonus, growthPenalty });
     createFeatureElement(game.features[game.features.length - 1]);
 }
 
-for (let i = 0; i < 7; i++) {
+for (let i = 0; i < 25; i++) {
     const x = Math.random() * 30 + 65;
     const y = Math.random() * 80 + 10;
-    const type = 'ice';
-    game.features.push({
-        type, x, y,
-        foodBonus: 0,
-        metalBonus: 3,
-        energyBonus: 2,
-        growthPenalty: 0
-    });
+    const rand = Math.random();
+    let type, foodBonus, metalBonus, energyBonus, growthPenalty;
+
+    if (rand > 0.85) {
+        type = 'crystalcave';
+        foodBonus = 0;
+        metalBonus = 5;
+        energyBonus = 12;
+        growthPenalty = 0;
+    } else if (rand > 0.7) {
+        type = 'glacier';
+        foodBonus = 5;
+        metalBonus = 0;
+        energyBonus = 8;
+        growthPenalty = -2;
+    } else if (rand > 0.55) {
+        type = 'tundra';
+        foodBonus = 3;
+        metalBonus = 4;
+        energyBonus = 3;
+        growthPenalty = -1;
+    } else {
+        type = 'ice';
+        foodBonus = 0;
+        metalBonus = 3;
+        energyBonus = 2;
+        growthPenalty = 0;
+    }
+
+    game.features.push({ type, x, y, foodBonus, metalBonus, energyBonus, growthPenalty });
     createFeatureElement(game.features[game.features.length - 1]);
-}
+    }
 }
 
     function createFeatureElement(feature) {
+        console.log('Creating feature:', feature.type, 'at', feature.x, feature.y);
         const container = document.getElementById('terrain-container');
         let el;
 
@@ -1819,20 +1887,52 @@ for (let i = 0; i < 7; i++) {
             el = document.createElement('div');
             el.className = 'desert-feature';
         } else if (feature.type === 'plains') {
-el = document.createElement('div');
-el.className = 'plains-feature';
-} else if (feature.type === 'grove') {
-el = document.createElement('div');
-el.className = 'grove-feature';
-for (let i = 0; i < 6; i++) {
-    const tree = document.createElement('div');
-    tree.className = 'grove-tree';
-    tree.style.left = `${(i % 3) * 18}px`;
-    tree.style.top = `${Math.floor(i / 3) * 20 + 5}px`;
-    el.appendChild(tree);
-}
-}
-
+            el = document.createElement('div');
+            el.className = 'plains-feature';
+        } else if (feature.type === 'grove') {
+            el = document.createElement('div');
+            el.className = 'grove-feature';
+            for (let i = 0; i < 6; i++) {
+                const tree = document.createElement('div');
+                tree.className = 'grove-tree';
+                tree.style.left = `${(i % 3) * 18}px`;
+                tree.style.top = `${Math.floor(i / 3) * 20 + 5}px`;
+                el.appendChild(tree);
+            }
+        } else if (feature.type === 'volcano') {
+            el = document.createElement('div');
+            el.className = 'volcano-feature';
+        } else if (feature.type === 'oasis') {
+            el = document.createElement('div');
+            el.className = 'oasis-feature';
+        } else if (feature.type === 'ruins') {
+            el = document.createElement('div');
+            el.className = 'ruins-feature';
+        } else if (feature.type === 'quarry') {
+            el = document.createElement('div');
+            el.className = 'quarry-feature';
+        } else if (feature.type === 'geothermal') {
+            el = document.createElement('div');
+            el.className = 'geothermal-feature';
+        } else if (feature.type === 'orchard') {
+            el = document.createElement('div');
+            el.className = 'orchard-feature';
+        } else if (feature.type === 'mine') {
+            el = document.createElement('div');
+            el.className = 'mine-feature';
+        } else if (feature.type === 'meadow') {
+            el = document.createElement('div');
+            el.className = 'meadow-feature';
+        } else if (feature.type === 'crystalcave') {
+            el = document.createElement('div');
+            el.className = 'crystalcave-feature';
+        } else if (feature.type === 'glacier') {
+            el = document.createElement('div');
+            el.className = 'glacier-feature';
+        } else if (feature.type === 'tundra') {
+            el = document.createElement('div');
+            el.className = 'tundra-feature';
+        }
 
         el.style.left = `${feature.x}%`;
         el.style.top = `${feature.y}%`;
@@ -1857,22 +1957,44 @@ for (let i = 0; i < 6; i++) {
         tooltip.style.zIndex = '100';
 
         if (feature.type === 'lake') {
-tooltip.textContent = 'Lake: +10F, +5E';
-} else if (feature.type === 'forest') {
-tooltip.textContent = 'Forest: +5F, +3M';
-} else if (feature.type === 'canyon') {
-tooltip.textContent = 'Canyon: +8M, +2E';
-} else if (feature.type === 'ice') {
-tooltip.textContent = 'Ice: +3M, +2E';
-} else if (feature.type === 'desert') {
-tooltip.textContent = 'Desert: -2 pop growth';
-} else if (feature.type === 'plains') {
-tooltip.textContent = 'Plains: +4F, +2M, +1pop';
-} else if (feature.type === 'grove') {
-tooltip.textContent = 'Sacred Grove: +15F, +5E';
-}
-
-
+            tooltip.textContent = 'Lake: +10F, +5E';
+        } else if (feature.type === 'forest') {
+            tooltip.textContent = 'Forest: +5F, +3M';
+        } else if (feature.type === 'canyon') {
+            tooltip.textContent = 'Canyon: +8M, +2E';
+        } else if (feature.type === 'ice') {
+            tooltip.textContent = 'Ice: +3M, +2E';
+        } else if (feature.type === 'desert') {
+            tooltip.textContent = 'Desert: -2 pop growth';
+        } else if (feature.type === 'plains') {
+            tooltip.textContent = 'Plains: +4F, +2M, +1pop';
+        } else if (feature.type === 'grove') {
+            tooltip.textContent = 'Sacred Grove: +15F, +5E';
+        } else if (feature.type === 'volcano') {
+            tooltip.textContent = 'Volcano: +15M, +10E, -3pop';
+        } else if (feature.type === 'oasis') {
+            tooltip.textContent = 'Oasis: +12F, +3E, +2pop';
+        } else if (feature.type === 'ruins') {
+            tooltip.textContent = 'Ancient Ruins: +3F, +8M, +8E';
+        } else if (feature.type === 'quarry') {
+            tooltip.textContent = 'Quarry: +12M, -1pop';
+        } else if (feature.type === 'geothermal') {
+            tooltip.textContent = 'Geothermal Vent: +5M, +15E';
+        } else if (feature.type === 'orchard') {
+            tooltip.textContent = 'Orchard: +10F, +2E, +1pop';
+        } else if (feature.type === 'mine') {
+            tooltip.textContent = 'Mine: +10M, +3E, -1pop';
+        } else if (feature.type === 'meadow') {
+            tooltip.textContent = 'Meadow: +8F, +1M, +1E, +2pop';
+        } else if (feature.type === 'crystalcave') {
+            tooltip.textContent = 'Crystal Cave: +5M, +12E';
+        } else if (feature.type === 'glacier') {
+            tooltip.textContent = 'Glacier: +5F, +8E, -2pop';
+        } else if (feature.type === 'tundra') {
+            tooltip.textContent = 'Tundra: +3F, +4M, +3E, -1pop';
+        } else {
+            tooltip.textContent = feature.type;
+        }
 
         el.appendChild(tooltip);
         el.addEventListener('mouseenter', () => tooltip.style.opacity = '1');
@@ -1880,7 +2002,14 @@ tooltip.textContent = 'Sacred Grove: +15F, +5E';
         el.style.pointerEvents = 'auto';
         el.style.cursor = 'help';
 
+        if (!el) {
+            console.warn('Unknown feature type:', feature.type);
+            return;
+        }
+        console.log('Successfully created:', feature.type);
+
         container.appendChild(el);
+
     }
 
     function createCity(x, y) {
@@ -3701,7 +3830,6 @@ document.getElementById('artillery-display').textContent = totalArtillery;
 
 document.getElementById('tribal-rep').textContent = game.tribalReputation;
 
-console.log('After embassy bonus:', game.resources.food, game.resources.metal, game.resources.energy);
 document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
 document.getElementById('build-city-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100});
 document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources({metal: 100, energy: 50}) || game.placingCity;
