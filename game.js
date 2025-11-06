@@ -4,6 +4,7 @@ const TRIBAL_ROAD_INTERVAL = 1000;
 const TRIBAL_CITY_INTERVAL_MIN = 3000;
 const TRIBAL_CITY_INTERVAL_MAX = 4000;
 const TRIBAL_MAX_EXPANSION = 35;
+const CITY_FEATURE_RADIUS = 12;
 
 const UNIT_TYPES = {
     infantry: {
@@ -586,7 +587,7 @@ function getCityFeatureBonus(city) {
 
     game.features.forEach(feature => {
         const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
-        if (dist < 12) {
+        if (dist < CITY_FEATURE_RADIUS) {
             const citiesNearFeature = game.cities.filter(c => {
                 const d = Math.sqrt(Math.pow(c.x - feature.x, 2) + Math.pow(c.y - feature.y, 2));
                 return d < 12 && !c.isRebel;
@@ -708,9 +709,23 @@ function updateCityDisplay(city) {
         }
     });
 }
+
 function selectCity(city) {
     game.selectedCity = city;
     game.selectedType = 'city';
+
+    const radius = document.getElementById('placement-radius');
+
+    radius.style.left = `${city.x}%`;
+    radius.style.top = `${city.y}%`;
+
+    const mainGame = document.getElementById('main-game');
+    const gameRect = mainGame.getBoundingClientRect();
+    const avgDimension = (gameRect.width + gameRect.height) / 2;
+    const radiusSize = (CITY_FEATURE_RADIUS / 100) * avgDimension * 2 * 10;
+    radius.style.width = radius.style.height = `${radiusSize}px`;
+    radius.classList.add('active');
+
     const panel = document.getElementById('info-panel');
     const inZone = isCityInHabitableZone(city);
     const roadBonus = getRoadBonus(city);
@@ -2233,35 +2248,35 @@ function spendResources(cost) {
 }
 
 
-    function startCityPlacement() {
-if (!hasResources({ food: 200, metal: 200, energy: 100 })) {
-AudioManager.playSFX('sfx-error', 0.4);
-            addMessage('Not enough resources!', 'warning');
-            return;
-        }
-        game.placingCity = true;
-        game.buildingRoad = false;
-        game.roadStartCity = null;
-        document.getElementById('planet-view').classList.add('placing-city');
-        document.getElementById('build-city-btn').classList.add('active');
-        document.getElementById('build-road-btn').classList.remove('active');
-        addMessage('Click to place city. Green = valid, Red = invalid.', 'info');
+function startCityPlacement() {
+    if (!hasResources({ food: 200, metal: 200, energy: 100 })) {
+        AudioManager.playSFX('sfx-error', 0.4);
+        addMessage('Not enough resources!', 'warning');
+        return;
     }
+    game.placingCity = true;
+    game.buildingRoad = false;
+    game.roadStartCity = null;
+    document.getElementById('planet-view').classList.add('placing-city');
+    document.getElementById('build-city-btn').classList.add('active');
+    document.getElementById('build-road-btn').classList.remove('active');
+    addMessage('Click to place city. Green = valid, Red = invalid.', 'info');
+}
 
-    function cancelCityPlacement() {
-        game.placingCity = false;
-        document.getElementById('planet-view').classList.remove('placing-city');
-        document.getElementById('build-city-btn').classList.remove('active');
-        document.getElementById('placement-preview').classList.remove('active');
-        document.getElementById('placement-radius').classList.remove('active');
-    }
+function cancelCityPlacement() {
+    game.placingCity = false;
+    document.getElementById('planet-view').classList.remove('placing-city');
+    document.getElementById('build-city-btn').classList.remove('active');
+    document.getElementById('placement-preview').classList.remove('active');
+    document.getElementById('placement-radius').classList.remove('active');
+}
 
-    function canPlaceCityAt(x, y) {
-        return !game.cities.some(city => {
-            const dist = Math.sqrt(Math.pow(x - city.x, 2) + Math.pow(y - city.y, 2));
-            return dist < MIN_CITY_DISTANCE;
-        });
-    }
+function canPlaceCityAt(x, y) {
+    return !game.cities.some(city => {
+        const dist = Math.sqrt(Math.pow(x - city.x, 2) + Math.pow(y - city.y, 2));
+        return dist < MIN_CITY_DISTANCE;
+    });
+}
 
 function tribalCounterattack() {
 const activeTribals = game.tribalCities.filter(t => !t.isConverted);
@@ -2496,47 +2511,50 @@ units.forEach((unit, index) => {
 
 
 
-    function handlePlanetClick(e) {
-        if (!game.placingCity && !game.buildingRoad) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+function handlePlanetClick(e) {
+    if (!game.placingCity && !game.buildingRoad) {
+        document.getElementById('placement-radius').classList.remove('active');
+        return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-        if (game.placingCity) {
-            if (canPlaceCityAt(x, y)) {
-                createCity(x, y);
-                cancelCityPlacement();
-            } else {
-                addMessage('Too close to another city!', 'warning');
-            }
-        } else if (game.buildingRoad) {
-
+    if (game.placingCity) {
+        if (canPlaceCityAt(x, y)) {
+            createCity(x, y);
+            cancelCityPlacement();
+        } else {
+            addMessage('Too close to another city!', 'warning');
+        }
+    } else if (game.buildingRoad) {}
 }
 
+function handlePlanetMove(e) {
+    if (!game.placingCity) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    }
+    const preview = document.getElementById('placement-preview');
+    const radius = document.getElementById('placement-radius');
 
-    function handlePlanetMove(e) {
-        if (!game.placingCity) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+    preview.style.left = `${x}%`;
+    preview.style.top = `${y}%`;
+    preview.classList.add('active');
 
-        const preview = document.getElementById('placement-preview');
-        const radius = document.getElementById('placement-radius');
+    radius.style.left = `${x}%`;
+    radius.style.top = `${y}%`;
 
-        preview.style.left = `${x}%`;
-        preview.style.top = `${y}%`;
-        preview.classList.add('active');
+    const mainGame = document.getElementById('main-game');
+    const gameRect = mainGame.getBoundingClientRect();
+    const avgDimension = (gameRect.width + gameRect.height) / 2;
+    const radiusSize = (CITY_FEATURE_RADIUS / 100) * avgDimension * 2 * 10;
+    radius.style.width = radius.style.height = `${radiusSize}px`;
+    radius.classList.add('active');
 
-        radius.style.left = `${x}%`;
-        radius.style.top = `${y}%`;
-        const radiusSize = (CITY_RADIUS * 2 / 100) * rect.width;
-        radius.style.width = radius.style.height = `${radiusSize}px`;
-        radius.classList.add('active');
-
-        preview.classList.toggle('invalid', !canPlaceCityAt(x, y));
-    }
+    preview.classList.toggle('invalid', !canPlaceCityAt(x, y));
+}
 
     function createRoad(city1, city2) {
 const roadCost = { food: 0, metal: 100, energy: 50 };
@@ -2593,30 +2611,35 @@ function startRoadBuilding() {
 }
 
 
-    function generateTribalCities() {
-const numCities = Math.floor(Math.random() * 2) + 2;
-const usedTribalNames = [];
+function generateTribalCities() {
+    const numCities = Math.floor(Math.random() * 2) + 2;
+    const usedTribalNames = [];
 
-for (let i = 0; i < numCities; i++) {
-    const x = Math.random() * 20 + 3;
-    const y = Math.random() * 70 + 15;
+    const clusterCenterX = 8 + Math.random() * 5;
+    const clusterCenterY = 20 + Math.random() * 20;
 
-    const availableNames = TRIBAL_NAMES.filter(n => !usedTribalNames.includes(n));
-    const name = availableNames.length > 0
-        ? availableNames[Math.floor(Math.random() * availableNames.length)]
-        : `Tribe ${tribalIdCounter}`;
-    usedTribalNames.push(name);
+    for (let i = 0; i < numCities; i++) {
+        const angle = (i / numCities) * Math.PI * 2;
+        const distance = 3 + Math.random() * 4;
+        const x = clusterCenterX + Math.cos(angle) * distance;
+        const y = clusterCenterY + Math.sin(angle) * distance;
 
-    const tribal = {
-        id: tribalIdCounter++,
-        name: name,
-        x, y, population: 300, isConverted: false,
-        units: { infantry: 1, cavalry: 1, artillery: 0 }
-    };
+        const availableNames = TRIBAL_NAMES.filter(n => !usedTribalNames.includes(n));
+        const name = availableNames.length > 0
+            ? availableNames[Math.floor(Math.random() * availableNames.length)]
+            : `Tribe ${tribalIdCounter}`;
+        usedTribalNames.push(name);
 
-    game.tribalCities.push(tribal);
-    createTribalCityElement(tribal);
-}
+        const tribal = {
+            id: tribalIdCounter++,
+            name: name,
+            x, y, population: 300, isConverted: false,
+            units: { infantry: 1, cavalry: 1, artillery: 0 }
+        };
+
+        game.tribalCities.push(tribal);
+        createTribalCityElement(tribal);
+    }
 }
 
     function createTribalCityElement(tribal) {
@@ -3189,11 +3212,14 @@ function updateZoom(delta) {
     const mainGame = document.getElementById('main-game');
     const rect = mainGame.getBoundingClientRect();
 
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
+    const mouseX = rect.width / 2;
+    const mouseY = rect.height / 2;
 
-    mapPanX = centerX - (centerX - mapPanX) * (mapZoom / oldZoom);
-    mapPanY = centerY - (centerY - mapPanY) * (mapZoom / oldZoom);
+    const worldX = (mouseX - mapPanX) / oldZoom;
+    const worldY = (mouseY - mapPanY) / oldZoom;
+
+    mapPanX = mouseX - worldX * mapZoom;
+    mapPanY = mouseY - worldY * mapZoom;
 
     applyMapTransform();
     updateMinimap();
@@ -3201,10 +3227,24 @@ function updateZoom(delta) {
 
 function applyMapTransform() {
     const planetView = document.getElementById('planet-view');
+    const mainGame = document.getElementById('main-game');
+    const rect = mainGame.getBoundingClientRect();
+
+    const planetWidth = rect.width * 10;
+    const planetHeight = rect.height * 10;
+
+    const scaledWidth = planetWidth * mapZoom;
+    const scaledHeight = planetHeight * mapZoom;
+
+    const minPanX = rect.width - scaledWidth;
+    const minPanY = rect.height - scaledHeight;
+
+    mapPanX = Math.max(minPanX, Math.min(0, mapPanX));
+    mapPanY = Math.max(minPanY, Math.min(0, mapPanY));
+
     planetView.style.transition = 'none';
     planetView.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapZoom})`;
 }
-
 function updateMinimap() {
     const minimap = document.getElementById('minimap');
     minimap.innerHTML = '<div class="minimap-viewport"></div>';
@@ -3536,15 +3576,31 @@ function tribalExpansion() {
             }
         }
 
-        function tribalBuildCity() {
+function tribalBuildCity() {
     const activeTribalCount = game.tribalCities.filter(t => !t.isConverted).length;
     if (activeTribalCount >= 10) {
         game.tribalCityTimer = Math.random() * 500 + TRIBAL_CITY_INTERVAL_MIN;
         return;
     }
 
-    const x = Math.min(TRIBAL_MAX_EXPANSION - 5, Math.random() * 15 + 8);
-    const y = Math.random() * 70 + 15;
+    const activeTribals = game.tribalCities.filter(t => !t.isConverted);
+    if (activeTribals.length === 0) return;
+
+    const nearTribal = activeTribals[Math.floor(Math.random() * activeTribals.length)];
+
+    let x, y, attempts = 0;
+    do {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 5 + Math.random() * 8;
+        x = nearTribal.x + Math.cos(angle) * distance;
+        y = nearTribal.y + Math.sin(angle) * distance;
+        attempts++;
+
+        if (attempts > 50) {
+            game.tribalCityTimer = Math.random() * 500 + TRIBAL_CITY_INTERVAL_MIN;
+            return;
+        }
+    } while (x < 3 || x > TRIBAL_MAX_EXPANSION || y < 10 || y > 90);
 
     const usedNames = game.tribalCities.map(t => t.name);
     const availableNames = TRIBAL_NAMES.filter(n => !usedNames.includes(n));
@@ -3574,28 +3630,59 @@ function tribalExpansion() {
         document.getElementById('planet-view').appendChild(roadEl);
     }
 
-    function updateTribalRoadPosition(roadEl, t1Id, t2Id) {
-        const el1 = document.getElementById(`tribal-${t1Id}`);
-        const el2 = document.getElementById(`tribal-${t2Id}`);
-        if (!el1 || !el2) return;
+function updateTribalRoadPosition(roadEl, t1Id, t2Id) {
+    const el1 = document.getElementById(`tribal-${t1Id}`);
+    const el2 = document.getElementById(`tribal-${t2Id}`);
+    if (!el1 || !el2) return;
 
-        const rect1 = el1.getBoundingClientRect();
-        const rect2 = el2.getBoundingClientRect();
-        const planetRect = document.getElementById('planet-view').getBoundingClientRect();
+    const rect1 = el1.getBoundingClientRect();
+    const rect2 = el2.getBoundingClientRect();
+    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
 
-        const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-        const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-        const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-        const y2 = rect2.top + rect2.height / 2 - planetRect.top;
+    const x1 = rect1.left + rect1.width / 2 - planetRect.left;
+    const y1 = rect1.top + rect1.height / 2 - planetRect.top;
+    const x2 = rect2.left + rect2.width / 2 - planetRect.left;
+    const y2 = rect2.top + rect2.height / 2 - planetRect.top;
 
-        const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
 
-        roadEl.style.left = `${x1}px`;
-        roadEl.style.top = `${y1}px`;
-        roadEl.style.width = `${length}px`;
-        roadEl.style.transform = `rotate(${angle}deg)`;
-    }
+    roadEl.style.left = `${x1}px`;
+    roadEl.style.top = `${y1}px`;
+    roadEl.style.width = `${length}px`;
+    roadEl.style.transform = `rotate(${angle}deg)`;
+}
+
+function updateAllTribalRoads() {
+    game.tribalRoads.forEach(road => {
+        const roadEl = document.getElementById(`tribal-road-${road.from}-${road.to}`);
+        if (roadEl) {
+            updateTribalRoadPosition(roadEl, road.from, road.to);
+        }
+    });
+}
+
+function updateZoom(delta) {
+    const oldZoom = mapZoom;
+    mapZoom = Math.max(0.3, Math.min(2, mapZoom + delta));
+
+    const planetView = document.getElementById('planet-view');
+    const mainGame = document.getElementById('main-game');
+    const rect = mainGame.getBoundingClientRect();
+
+    const mouseX = rect.width / 2;
+    const mouseY = rect.height / 2;
+
+    const worldX = (mouseX - mapPanX) / oldZoom;
+    const worldY = (mouseY - mapPanY) / oldZoom;
+
+    mapPanX = mouseX - worldX * mapZoom;
+    mapPanY = mouseY - worldY * mapZoom;
+
+    applyMapTransform();
+    updateAllTribalRoads();
+    updateMinimap();
+}
 
    function recruitUnit(type) {
 if (!game.selectedCity || game.selectedType !== 'city') {
@@ -3678,23 +3765,18 @@ addMessage(`Provided aid! All cities gained +${happiness} happiness.`, 'success'
 }
 
 
-    function tribalTrade() {
-if (!hasResources({ food: 60, metal: 30, energy: 10 }) || game.tribalTradeCooldown > 0 || game.tribalRelation === 'war') return;
-spendResources({ food: 60, metal: 30, energy: 10 });
-game.tribalReputation = Math.min(100, game.tribalReputation + 10);
-game.tribalTradeCooldown = 1000;
+function tribalTrade() {
+    if (game.resources.food < 80 || game.tribalTradeCooldown > 0 || game.tribalRelation === 'war') return;
 
-game.cities.forEach(city => {
-    if (!city.isRebel) {
-        city.tradeBoost = 100;
-    }
-});
+    game.resources.food -= 80;
+    game.resources.metal += 80;
 
-addMessage('Trade agreement signed! All cities get production boost for 1 year!', 'success');
-addMessage('Net gain: 120 resources (+220 total - 100 cost)', 'info');
-AudioManager.playSFX('sfx-success', 0.6);
+    game.tribalReputation = Math.min(100, game.tribalReputation + 10);
+    game.tribalTradeCooldown = 1000;
+
+    addMessage('Trade agreement signed! Converted 80 food to 80 metal!', 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
 }
-
 
 function buildEmbassy() {
     if (!hasResources({ food: 200, metal: 200, energy: 100 }) || game.hasEmbassy || game.tribalRelation === 'war') return;
@@ -3845,10 +3927,11 @@ document.getElementById('charity-large-btn').disabled = !hasResources({food: 240
 if (game.tribalTradeCooldown > 0) {
     game.tribalTradeCooldown--;
     document.getElementById('trade-btn').disabled = true;
-    document.getElementById('trade-btn').textContent = `Trade (${Math.ceil(game.tribalTradeCooldown / 10)}s)`;
+    const yearsLeft = Math.ceil(game.tribalTradeCooldown / 100);
+    document.getElementById('trade-btn').textContent = `Trade (${yearsLeft}yr)`;
 } else {
-    document.getElementById('trade-btn').disabled = !hasResources({food: 60, metal: 30, energy: 10}) || game.tribalRelation === 'war' || game.tribalsDefeated;
-    document.getElementById('trade-btn').textContent = 'Trade (100→+10)';
+    document.getElementById('trade-btn').disabled = game.resources.food < 80 || game.tribalRelation === 'war' || game.tribalsDefeated;
+    document.getElementById('trade-btn').textContent = 'Trade (80F→80M)';
 }
 
 document.getElementById('embassy-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100}) || game.hasEmbassy || game.tribalRelation === 'war' || game.tribalsDefeated;
