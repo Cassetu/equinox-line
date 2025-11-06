@@ -625,25 +625,27 @@ function getCityFeatureBonus(city) {
 }
 
 function updateRoadPosition(roadEl, city1Id, city2Id) {
-    const city1El = document.getElementById(`city-${city1Id}`);
-    const city2El = document.getElementById(`city-${city2Id}`);
-    if (!city1El || !city2El) return;
+    const city1 = game.cities.find(c => c.id === city1Id);
+    const city2 = game.cities.find(c => c.id === city2Id);
+    if (!city1 || !city2) return;
 
-    const rect1 = city1El.getBoundingClientRect();
-    const rect2 = city2El.getBoundingClientRect();
-    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
+    const planetView = document.getElementById('planet-view');
+    const planetWidth = planetView.offsetWidth;
+    const cityOffset = (20 / planetWidth) * 100;
 
-    const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-    const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-    const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-    const y2 = rect2.top + rect2.height / 2 - planetRect.top;
+    const x1 = city1.x + cityOffset;
+    const y1 = city1.y + cityOffset;
+    const x2 = city2.x + cityOffset;
+    const y2 = city2.y + cityOffset;
 
-    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-    roadEl.style.left = `${x1}px`;
-    roadEl.style.top = `${y1}px`;
-    roadEl.style.width = `${length}px`;
+    roadEl.style.left = `${x1}%`;
+    roadEl.style.top = `${y1}%`;
+    roadEl.style.width = `${length}%`;
     roadEl.style.transform = `rotate(${angle}deg)`;
 }
 
@@ -679,7 +681,6 @@ function initiatePeaceTalks() {
     addMessage('Peace negotiations begun! Tribes will present demands over 3 years.', 'info');
     AudioManager.playSFX('sfx-success', 0.5);
 }
-
 
 function updateCityDisplay(city) {
     const el = document.getElementById(`city-${city.id}`);
@@ -866,14 +867,14 @@ function updateAttackersList() {
     }).join('');
     }
 
-    function cancelAttackSelection() {
-    game.selectingAttackers = false;
-    game.attackingCities = [];
-    game.targetTribal = null;
-    document.getElementById('info-panel').innerHTML = '';
-    }
+function cancelAttackSelection() {
+game.selectingAttackers = false;
+game.attackingCities = [];
+game.targetTribal = null;
+document.getElementById('info-panel').innerHTML = '';
+}
 
-    function confirmAttack() {
+function confirmAttack() {
     if (game.attackingCities.length === 0) {
         addMessage('Select at least one city!', 'warning');
         return;
@@ -1092,41 +1093,40 @@ function update() {
             game.spaceportBuilding = false;
         }
     }
-tribalExpansion();
-tribalMilitaryManagement();
-checkTribalWarDeclaration();
-if (game.tribalRelation === 'war' && !game.tribalsDefeated && Math.random() < 0.01) {
-    tribalCounterattack();
-}
-// 1% chance
+    tribalExpansion();
+    tribalMilitaryManagement();
+    checkTribalWarDeclaration();
+    if (game.tribalRelation === 'war' && !game.tribalsDefeated && Math.random() < 0.01) {
+        tribalCounterattack();
+    }
+    // 1% chance
 
-if (game.peaceTalksActive) {
-game.peaceTalksTimer += 0.01;
+    if (game.peaceTalksActive) {
+    game.peaceTalksTimer += 0.01;
 
-const yearOfTalks = Math.floor(game.peaceTalksTimer);
+    const yearOfTalks = Math.floor(game.peaceTalksTimer);
 
-if (yearOfTalks < 3 && !game.currentPeaceDemand && yearOfTalks > game.lastShownDemandIndex && game.peaceTalksTimer - yearOfTalks > 0.5) {
-const demand = game.peaceDemands[yearOfTalks];
-if (demand) {
-game.currentPeaceDemand = demand;
-game.lastShownDemandIndex = yearOfTalks;
-showPeaceDemand(demand, yearOfTalks + 1);
-}
-}
+    if (yearOfTalks < 3 && !game.currentPeaceDemand && yearOfTalks > game.lastShownDemandIndex && game.peaceTalksTimer - yearOfTalks > 0.5) {
+    const demand = game.peaceDemands[yearOfTalks];
+    if (demand) {
+    game.currentPeaceDemand = demand;
+    game.lastShownDemandIndex = yearOfTalks;
+    showPeaceDemand(demand, yearOfTalks + 1);
+    }
+    }
 
-if (game.peaceTalksTimer >= 3.5) {
-concludePeaceTalks();
-}
-}
+    if (game.peaceTalksTimer >= 3.5) {
+    concludePeaceTalks();
+    }
+    }
 
 
-if (game.peaceTreatyCooldown > 0) {
-game.peaceTreatyCooldown--;
-if (game.tribalReputation < 21) {
-game.tribalReputation = 21;
-}
-}
-
+    if (game.peaceTreatyCooldown > 0) {
+    game.peaceTreatyCooldown--;
+    if (game.tribalReputation < 21) {
+    game.tribalReputation = 21;
+    }
+    }
 
     game.cities.forEach(city => {
         if (city.conquestRebellionTimer > 0) {
@@ -1341,7 +1341,6 @@ game.currentPeaceDemand = null;
 game.paused = false;
 }
 
-
 function concludePeaceTalks() {
 game.peaceTalksActive = false;
 game.peaceTalksTimer = 0;
@@ -1379,9 +1378,6 @@ if (game.peaceDemandsMet === 0) {
 game.peaceDemands = [];
 game.currentPeaceDemand = null;
 }
-
-
-
 
 function checkTribalWarDeclaration() {
 if (game.tribalsDefeated || game.tribalRelation === 'war') return;
@@ -1430,18 +1426,18 @@ addMessage('TRIBALS DECLARE WAR! Your expansion threatens them!', 'danger');
 }
 
 function beginBattle() {
-if (!game.currentBattle) return;
+    if (!game.currentBattle) return;
 
-const tribal = game.currentBattle;
-const closestCity = getClosestPlayerCity(tribal);
-if (!closestCity) return;
+    const tribal = game.currentBattle;
+    const closestCity = getClosestPlayerCity(tribal);
+    if (!closestCity) return;
 
-document.getElementById('battle-planning').style.display = 'none';
+    document.getElementById('battle-planning').style.display = 'none';
 
-const activeTribals = game.tribalCities.filter(t => !t.isConverted && t.id !== tribal.id);
+    const activeTribals = game.tribalCities.filter(t => !t.isConverted && t.id !== tribal.id);
 
-activeTribals.forEach(ally => {
-const distance = Math.sqrt(Math.pow(tribal.x - ally.x, 2) + Math.pow(tribal.y - ally.y, 2));
+    activeTribals.forEach(ally => {
+    const distance = Math.sqrt(Math.pow(tribal.x - ally.x, 2) + Math.pow(tribal.y - ally.y, 2));
 
 if (distance < 25 && (ally.units.infantry > 2 || ally.units.cavalry > 1 || ally.units.artillery > 0)) {
     const currentTotal = tribal.units.infantry + tribal.units.cavalry + tribal.units.artillery;
@@ -3244,7 +3240,22 @@ function applyMapTransform() {
 
     planetView.style.transition = 'none';
     planetView.style.transform = `translate(${mapPanX}px, ${mapPanY}px) scale(${mapZoom})`;
+
+    game.roads.forEach(road => {
+        const roadEl = document.getElementById(`road-${road.id}`);
+        if (roadEl) {
+            updateRoadPosition(roadEl, road.from, road.to);
+        }
+    });
+
+    game.tribalRoads.forEach(road => {
+        const roadEl = document.getElementById(`tribal-road-${road.from}-${road.to}`);
+        if (roadEl) {
+            updateTribalRoadPosition(roadEl, road.from, road.to);
+        }
+    });
 }
+
 function updateMinimap() {
     const minimap = document.getElementById('minimap');
     minimap.innerHTML = '<div class="minimap-viewport"></div>';
@@ -3272,13 +3283,13 @@ function updateMinimap() {
     const planetView = document.getElementById('planet-view');
     const viewport = minimap.querySelector('.minimap-viewport');
 
-    const planetWidth = rect.width * 10; 
+    const planetWidth = rect.width * 10;
     const planetHeight = rect.height * 10;
-    
-    const viewWidth = (rect.width / planetWidth) * 100;
-    const viewHeight = (rect.height / planetHeight) * 100;
-    const viewX = (-mapPanX / planetWidth) * 100;
-    const viewY = (-mapPanY / planetHeight) * 100;
+
+    const viewWidth = (rect.width / (planetWidth * mapZoom)) * 100;
+    const viewHeight = (rect.height / (planetHeight * mapZoom)) * 100;
+    const viewX = (-mapPanX / (planetWidth * mapZoom)) * 100;
+    const viewY = (-mapPanY / (planetHeight * mapZoom)) * 100;
 
     viewport.style.left = `${viewX}%`;
     viewport.style.top = `${viewY}%`;
@@ -3467,8 +3478,6 @@ function endEnhancedDDRBattle() {
     }
 }
 
-
-
 function convertTribalCity(tribal) {
     tribal.isConverted = true;
 
@@ -3555,8 +3564,7 @@ function tribalExpansion() {
     }
     }
 
-
-        function tribalBuildRoad() {
+function tribalBuildRoad() {
             const activeTribals = game.tribalCities.filter(t => !t.isConverted);
             if (activeTribals.length < 2) return;
 
@@ -3620,36 +3628,37 @@ function tribalBuildCity() {
     addMessage('Tribes founded a new city!', 'danger');
 }
 
+function createTribalRoad(t1, t2) {
+    const roadEl = document.createElement('div');
+    roadEl.className = 'tribal-road';
+    roadEl.id = `tribal-road-${t1.id}-${t2.id}`;
 
-    function createTribalRoad(t1, t2) {
-        const roadEl = document.createElement('div');
-        roadEl.className = 'tribal-road';
-        roadEl.id = `tribal-road-${t1.id}-${t2.id}`;
-
-        updateTribalRoadPosition(roadEl, t1.id, t2.id);
-        document.getElementById('planet-view').appendChild(roadEl);
-    }
+    updateTribalRoadPosition(roadEl, t1.id, t2.id);
+    document.getElementById('planet-view').appendChild(roadEl);
+}
 
 function updateTribalRoadPosition(roadEl, t1Id, t2Id) {
-    const el1 = document.getElementById(`tribal-${t1Id}`);
-    const el2 = document.getElementById(`tribal-${t2Id}`);
-    if (!el1 || !el2) return;
+    const t1 = game.tribalCities.find(t => t.id === t1Id);
+    const t2 = game.tribalCities.find(t => t.id === t2Id);
+    if (!t1 || !t2) return;
 
-    const rect1 = el1.getBoundingClientRect();
-    const rect2 = el2.getBoundingClientRect();
-    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
+    const planetView = document.getElementById('planet-view');
+    const planetWidth = planetView.offsetWidth;
+    const tribalOffset = (17.5 / planetWidth) * 100;
 
-    const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-    const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-    const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-    const y2 = rect2.top + rect2.height / 2 - planetRect.top;
+    const x1 = t1.x + tribalOffset;
+    const y1 = t1.y + tribalOffset;
+    const x2 = t2.x + tribalOffset;
+    const y2 = t2.y + tribalOffset;
 
-    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
-    roadEl.style.left = `${x1}px`;
-    roadEl.style.top = `${y1}px`;
-    roadEl.style.width = `${length}px`;
+    roadEl.style.left = `${x1}%`;
+    roadEl.style.top = `${y1}%`;
+    roadEl.style.width = `${length}%`;
     roadEl.style.transform = `rotate(${angle}deg)`;
 }
 
@@ -3684,22 +3693,22 @@ function updateZoom(delta) {
     updateMinimap();
 }
 
-   function recruitUnit(type) {
+function recruitUnit(type) {
 if (!game.selectedCity || game.selectedType !== 'city') {
-    addMessage('Select a city first to recruit units!', 'warning');
-    return;
+addMessage('Select a city first to recruit units!', 'warning');
+return;
 }
 
 const city = game.selectedCity;
 if (city.isRebel) {
-    addMessage('Cannot recruit in rebel cities!', 'warning');
-    return;
+addMessage('Cannot recruit in rebel cities!', 'warning');
+return;
 }
 
 const totalUnitsInCity = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
 if (totalUnitsInCity >= 8) {
-    addMessage(`${city.name} is at max capacity (8 units)!`, 'warning');
-    return;
+addMessage(`${city.name} is at max capacity (8 units)!`, 'warning');
+return;
 }
 const unit = UNIT_TYPES[type];
 const popCost = type === 'infantry' ? 50 : (type === 'cavalry' ? 100 : 10);
@@ -3718,8 +3727,8 @@ return;
 
 
 if (city.population < popCost + 10) {
-    addMessage(`${city.name} needs ${popCost} population to recruit!`, 'warning');
-    return;
+addMessage(`${city.name} needs ${popCost} population to recruit!`, 'warning');
+return;
 }
 
 const totalInfantry = game.cities.reduce((sum, c) => sum + c.stationedUnits.infantry, 0);
@@ -3730,9 +3739,9 @@ if ((type === 'infantry' && totalInfantry === 11) ||
 (type === 'cavalry' && totalCavalry === 11) ||
 (type === 'artillery' && totalArtillery === 11)) {
 if (!game.tribalsDefeated && game.tribalRelation !== 'war') {
-    game.tribalReputation = Math.max(0, game.tribalReputation - 10);
-    addMessage(`Tribes alarmed by your ${unit.name} buildup! (-10 rep)`, 'warning');
-    AudioManager.playSFX('sfx-alert', 0.5);
+game.tribalReputation = Math.max(0, game.tribalReputation - 10);
+addMessage(`Tribes alarmed by your ${unit.name} buildup! (-10 rep)`, 'warning');
+AudioManager.playSFX('sfx-alert', 0.5);
 }
 }
 
@@ -3747,23 +3756,19 @@ updateCityUnitIcons(city);
 selectCity(city);
 }
 
-
-
-
-    function provideCharity(cost, happiness) {
+function provideCharity(cost, happiness) {
 if (!hasResources(cost)) {
-    addMessage('Not enough resources for charity!', 'warning');
-    return;
+addMessage('Not enough resources for charity!', 'warning');
+return;
 }
 spendResources(cost);
 game.cities.forEach(city => {
-    if (!city.isRebel) {
-        city.happiness = Math.min(100, city.happiness + happiness);
-    }
+if (!city.isRebel) {
+    city.happiness = Math.min(100, city.happiness + happiness);
+}
 });
 addMessage(`Provided aid! All cities gained +${happiness} happiness.`, 'success');
 }
-
 
 function tribalTrade() {
     if (game.resources.food < 80 || game.tribalTradeCooldown > 0 || game.tribalRelation === 'war') return;
@@ -3786,23 +3791,22 @@ function buildEmbassy() {
         addMessage('Embassy established!', 'success');
     }
 
-    function denounceTribes() {
-    if (game.tribalRelation === 'war') return;
-    if (game.peaceTreatyCooldown > 0) {
-    addMessage('Cannot denounce during peace treaty!', 'warning');
-    return;
-    }
-    game.tribalReputation = Math.max(0, game.tribalReputation - 30);
-    addMessage('Denounced tribes! Relations worsened.', 'warning');
-}
-
-
-    function declareWar() {
+function denounceTribes() {
 if (game.tribalRelation === 'war') return;
 if (game.peaceTreatyCooldown > 0) {
-    const yearsLeft = Math.ceil(game.peaceTreatyCooldown / 100);
-    addMessage(`Peace treaty in effect for ${yearsLeft} more years!`, 'warning');
-    return;
+addMessage('Cannot denounce during peace treaty!', 'warning');
+return;
+}
+game.tribalReputation = Math.max(0, game.tribalReputation - 30);
+addMessage('Denounced tribes! Relations worsened.', 'warning');
+}
+
+function declareWar() {
+if (game.tribalRelation === 'war') return;
+if (game.peaceTreatyCooldown > 0) {
+const yearsLeft = Math.ceil(game.peaceTreatyCooldown / 100);
+addMessage(`Peace treaty in effect for ${yearsLeft} more years!`, 'warning');
+return;
 }
 game.tribalRelation = 'war';
 game.tribalReputation = 0;
@@ -3810,10 +3814,10 @@ game.tribalReputation = 0;
 AudioManager.playBattleMusic();
 
 game.cities.forEach(city => {
-    if (!city.isRebel) {
-        city.happiness = Math.max(0, city.happiness - 25);
-        updateCityDisplay(city);
-    }
+if (!city.isRebel) {
+    city.happiness = Math.max(0, city.happiness - 25);
+    updateCityDisplay(city);
+}
 });
 
 addMessage('WAR DECLARED! Tribes will fight back!', 'danger');
@@ -3821,181 +3825,178 @@ addMessage('All cities lost 25 happiness due to war declaration!', 'warning');
 AudioManager.playSFX('sfx-alert', 0.7);
 }
 
+function updateTribalRelation() {
+    const rep = game.tribalReputation;
+    let newRelation = 'neutral';
 
+    if (rep <= 20) newRelation = 'war';
+    else if (rep <= 40) newRelation = 'hostile';
+    else if (rep <= 60) newRelation = 'neutral';
+    else if (rep <= 80) newRelation = 'friendly';
+    else newRelation = 'allied';
 
-
-    function updateTribalRelation() {
-        const rep = game.tribalReputation;
-        let newRelation = 'neutral';
-
-        if (rep <= 20) newRelation = 'war';
-        else if (rep <= 40) newRelation = 'hostile';
-        else if (rep <= 60) newRelation = 'neutral';
-        else if (rep <= 80) newRelation = 'friendly';
-        else newRelation = 'allied';
-
-        if (newRelation !== game.tribalRelation && game.tribalRelation !== 'war') {
-            game.tribalRelation = newRelation;
-            addMessage(`Tribal relations: ${newRelation.toUpperCase()}`, 'info');
-        }
+    if (newRelation !== game.tribalRelation && game.tribalRelation !== 'war') {
+        game.tribalRelation = newRelation;
+        addMessage(`Tribal relations: ${newRelation.toUpperCase()}`, 'info');
     }
+}
 
-    function setLaw(lawKey) {
-        game.activeLaw = lawKey;
-        addMessage(`Law: ${LAWS[lawKey].name}`, 'info');
-        document.getElementById('current-law-name').textContent = LAWS[lawKey].name;
-        document.querySelectorAll('.law-option').forEach(el => {
-            el.classList.toggle('active', el.getAttribute('data-law') === lawKey);
-        });
+function setLaw(lawKey) {
+    game.activeLaw = lawKey;
+    addMessage(`Law: ${LAWS[lawKey].name}`, 'info');
+    document.getElementById('current-law-name').textContent = LAWS[lawKey].name;
+    document.querySelectorAll('.law-option').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-law') === lawKey);
+    });
+}
+
+function toggleSpaceportPanel() {
+    const panel = document.getElementById('spaceport-panel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    updateSpaceportPanel();
+}
+
+function updateSpaceportPanel() {
+    const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
+    document.getElementById('sp-pop-current').textContent = totalPop;
+    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+    document.getElementById('sp-res-current').textContent = Math.floor(totalRes);
+
+    const progressBar = document.getElementById('spaceport-progress-bar');
+    progressBar.style.width = `${game.spaceportProgress}%`;
+    progressBar.textContent = `${Math.floor(game.spaceportProgress)}%`;
+
+    const startBtn = document.getElementById('start-spaceport-btn');
+    if (game.spaceportBuilding) {
+        startBtn.textContent = 'Construction In Progress...';
+        startBtn.disabled = true;
+    } else if (totalPop >= 2000 && totalRes >= 10000) {
+        startBtn.textContent = 'Start Construction';
+        startBtn.disabled = false;
+    } else {
+        startBtn.textContent = 'Requirements Not Met';
+        startBtn.disabled = true;
     }
+}
 
-    function toggleSpaceportPanel() {
-        const panel = document.getElementById('spaceport-panel');
-        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        updateSpaceportPanel();
+function startSpaceportConstruction() {
+    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+    const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
+    if (totalPop < 2000 || totalRes < 10000) {
+        addMessage('Requirements not met!', 'warning');
+        return;
     }
-
-    function updateSpaceportPanel() {
-        const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
-        document.getElementById('sp-pop-current').textContent = totalPop;
-        const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
-        document.getElementById('sp-res-current').textContent = Math.floor(totalRes);
-
-        const progressBar = document.getElementById('spaceport-progress-bar');
-        progressBar.style.width = `${game.spaceportProgress}%`;
-        progressBar.textContent = `${Math.floor(game.spaceportProgress)}%`;
-
-        const startBtn = document.getElementById('start-spaceport-btn');
-        if (game.spaceportBuilding) {
-            startBtn.textContent = 'Construction In Progress...';
-            startBtn.disabled = true;
-        } else if (totalPop >= 2000 && totalRes >= 10000) {
-            startBtn.textContent = 'Start Construction';
-            startBtn.disabled = false;
-        } else {
-            startBtn.textContent = 'Requirements Not Met';
-            startBtn.disabled = true;
-        }
-    }
-
-    function startSpaceportConstruction() {
-        const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
-        const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
-        if (totalPop < 2000 || totalRes < 10000) {
-            addMessage('Requirements not met!', 'warning');
-            return;
-        }
-        game.spaceportBuilding = true;
-        addMessage('Spaceport construction begun!', 'success');
-        updateSpaceportPanel();
-    }
+    game.spaceportBuilding = true;
+    addMessage('Spaceport construction begun!', 'success');
+    updateSpaceportPanel();
+}
 
 function updateUI() {
-const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
+    const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
 
-document.getElementById('year').textContent = Math.floor(game.year);
-document.getElementById('food-display').textContent = Math.floor(game.resources.food);
-document.getElementById('metal-display').textContent = Math.floor(game.resources.metal);
-document.getElementById('energy-display').textContent = Math.floor(game.resources.energy);
-document.getElementById('total-pop').textContent = totalPop;
-
-
-const totalInfantry = game.cities.reduce((sum, c) => sum + c.stationedUnits.infantry, 0);
-const totalCavalry = game.cities.reduce((sum, c) => sum + c.stationedUnits.cavalry, 0);
-const totalArtillery = game.cities.reduce((sum, c) => sum + c.stationedUnits.artillery, 0);
-const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
-
-document.getElementById('infantry-display').textContent = totalInfantry;
-document.getElementById('cavalry-display').textContent = totalCavalry;
-document.getElementById('artillery-display').textContent = totalArtillery;
+    document.getElementById('year').textContent = Math.floor(game.year);
+    document.getElementById('food-display').textContent = Math.floor(game.resources.food);
+    document.getElementById('metal-display').textContent = Math.floor(game.resources.metal);
+    document.getElementById('energy-display').textContent = Math.floor(game.resources.energy);
+    document.getElementById('total-pop').textContent = totalPop;
 
 
-document.getElementById('tribal-rep').textContent = game.tribalReputation;
+    const totalInfantry = game.cities.reduce((sum, c) => sum + c.stationedUnits.infantry, 0);
+    const totalCavalry = game.cities.reduce((sum, c) => sum + c.stationedUnits.cavalry, 0);
+    const totalArtillery = game.cities.reduce((sum, c) => sum + c.stationedUnits.artillery, 0);
+    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
 
-document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
-document.getElementById('build-city-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100});
-document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources({metal: 100, energy: 50}) || game.placingCity;
+    document.getElementById('infantry-display').textContent = totalInfantry;
+    document.getElementById('cavalry-display').textContent = totalCavalry;
+    document.getElementById('artillery-display').textContent = totalArtillery;
 
-document.getElementById('recruit-infantry-btn').disabled = !hasResources({food: 50, metal: 50, energy: 0}) || totalPop < 50;
-document.getElementById('recruit-cavalry-btn').disabled = !hasResources({food: 100, metal: 100, energy: 50}) || totalPop < 100;
-document.getElementById('recruit-artillery-btn').disabled = !hasResources({food: 50, metal: 300, energy: 150}) || totalPop < 10;
 
-document.getElementById('charity-small-btn').disabled = !hasResources({food: 30, metal: 15, energy: 5});
-document.getElementById('charity-medium-btn').disabled = !hasResources({food: 90, metal: 45, energy: 15});
-document.getElementById('charity-large-btn').disabled = !hasResources({food: 240, metal: 120, energy: 40});
+    document.getElementById('tribal-rep').textContent = game.tribalReputation;
 
-if (game.tribalTradeCooldown > 0) {
+    document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
+    document.getElementById('build-city-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100});
+    document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources({metal: 100, energy: 50}) || game.placingCity;
+
+    document.getElementById('recruit-infantry-btn').disabled = !hasResources({food: 50, metal: 50, energy: 0}) || totalPop < 50;
+    document.getElementById('recruit-cavalry-btn').disabled = !hasResources({food: 100, metal: 100, energy: 50}) || totalPop < 100;
+    document.getElementById('recruit-artillery-btn').disabled = !hasResources({food: 50, metal: 300, energy: 150}) || totalPop < 10;
+
+    document.getElementById('charity-small-btn').disabled = !hasResources({food: 30, metal: 15, energy: 5});
+    document.getElementById('charity-medium-btn').disabled = !hasResources({food: 90, metal: 45, energy: 15});
+    document.getElementById('charity-large-btn').disabled = !hasResources({food: 240, metal: 120, energy: 40});
+
+    if (game.tribalTradeCooldown > 0) {
+        game.tribalTradeCooldown--;
+        document.getElementById('trade-btn').disabled = true;
+        const yearsLeft = Math.ceil(game.tribalTradeCooldown / 100);
+        document.getElementById('trade-btn').textContent = `Trade (${yearsLeft}yr)`;
+    } else {
+        document.getElementById('trade-btn').disabled = game.resources.food < 80 || game.tribalRelation === 'war' || game.tribalsDefeated;
+        document.getElementById('trade-btn').textContent = 'Trade (80F→80M)';
+    }
+
+    document.getElementById('embassy-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100}) || game.hasEmbassy || game.tribalRelation === 'war' || game.tribalsDefeated;
+    document.getElementById('denounce-btn').disabled = game.tribalRelation === 'war' || game.tribalsDefeated;
+    document.getElementById('declare-war-btn').disabled = game.tribalRelation === 'war' || game.tribalsDefeated || game.peaceTreatyCooldown > 0;
+
+    if (game.peaceTreatyCooldown > 0) {
+    const yearsLeft = Math.ceil(game.peaceTreatyCooldown / 100);
+    document.getElementById('declare-war-btn').textContent = `Treaty (${yearsLeft}yr)`;
+    } else {
+    document.getElementById('declare-war-btn').textContent = 'War';
+    }
+
+    if (game.hasEmbassy) {
+        document.getElementById('embassy-btn').textContent = 'Embassy ✓';
+    }
+
+    const negotiateBtn = document.getElementById('negotiate-peace-btn');
+    if (game.tribalRelation === 'war' && !game.peaceTalksActive && !game.tribalsDefeated) {
+    negotiateBtn.style.display = 'block';
+    negotiateBtn.disabled = (game.resources.food + game.resources.metal + game.resources.energy) < 1000;
+    } else {
+    negotiateBtn.style.display = 'none';
+    }
+
+    if (game.peaceTalksActive) {
+    negotiateBtn.textContent = `Talks in Progress (Year ${Math.floor(game.peaceTalksTimer) + 1}/3)`;
+    negotiateBtn.disabled = true;
+    }
+
+
+    const repFill = document.getElementById('reputation-fill');
+    repFill.style.width = `${game.tribalReputation}%`;
+    document.getElementById('reputation-text').textContent = `${game.tribalReputation}/100`;
+
+    let statusText = '';
+    if (game.tribalsDefeated) {
+        statusText = 'Defeated';
+    } else if (game.tribalReputation <= 20) {
+        statusText = 'WAR';
+    } else if (game.tribalReputation <= 40) {
+        statusText = 'Hostile';
+    } else if (game.tribalReputation <= 60) {
+        statusText = 'Neutral';
+    } else if (game.tribalReputation <= 80) {
+        statusText = 'Friendly';
+    } else {
+        statusText = 'Allied';
+    }
+    document.getElementById('tribal-status').textContent = `Status: ${statusText}`;
+
+    updateTribalRelation();
+    updateSpaceportPanel();
+    }
+
+    if (game.tribalTradeCooldown > 0) {
     game.tribalTradeCooldown--;
     document.getElementById('trade-btn').disabled = true;
     const yearsLeft = Math.ceil(game.tribalTradeCooldown / 100);
     document.getElementById('trade-btn').textContent = `Trade (${yearsLeft}yr)`;
-} else {
-    document.getElementById('trade-btn').disabled = game.resources.food < 80 || game.tribalRelation === 'war' || game.tribalsDefeated;
-    document.getElementById('trade-btn').textContent = 'Trade (80F→80M)';
-}
-
-document.getElementById('embassy-btn').disabled = !hasResources({food: 200, metal: 200, energy: 100}) || game.hasEmbassy || game.tribalRelation === 'war' || game.tribalsDefeated;
-document.getElementById('denounce-btn').disabled = game.tribalRelation === 'war' || game.tribalsDefeated;
-document.getElementById('declare-war-btn').disabled = game.tribalRelation === 'war' || game.tribalsDefeated || game.peaceTreatyCooldown > 0;
-
-if (game.peaceTreatyCooldown > 0) {
-const yearsLeft = Math.ceil(game.peaceTreatyCooldown / 100);
-document.getElementById('declare-war-btn').textContent = `Treaty (${yearsLeft}yr)`;
-} else {
-document.getElementById('declare-war-btn').textContent = 'War';
-}
-
-if (game.hasEmbassy) {
-    document.getElementById('embassy-btn').textContent = 'Embassy ✓';
-}
-
-const negotiateBtn = document.getElementById('negotiate-peace-btn');
-if (game.tribalRelation === 'war' && !game.peaceTalksActive && !game.tribalsDefeated) {
-negotiateBtn.style.display = 'block';
-negotiateBtn.disabled = (game.resources.food + game.resources.metal + game.resources.energy) < 1000;
-} else {
-negotiateBtn.style.display = 'none';
-}
-
-if (game.peaceTalksActive) {
-negotiateBtn.textContent = `Talks in Progress (Year ${Math.floor(game.peaceTalksTimer) + 1}/3)`;
-negotiateBtn.disabled = true;
-}
-
-
-const repFill = document.getElementById('reputation-fill');
-repFill.style.width = `${game.tribalReputation}%`;
-document.getElementById('reputation-text').textContent = `${game.tribalReputation}/100`;
-
-let statusText = '';
-if (game.tribalsDefeated) {
-    statusText = 'Defeated';
-} else if (game.tribalReputation <= 20) {
-    statusText = 'WAR';
-} else if (game.tribalReputation <= 40) {
-    statusText = 'Hostile';
-} else if (game.tribalReputation <= 60) {
-    statusText = 'Neutral';
-} else if (game.tribalReputation <= 80) {
-    statusText = 'Friendly';
-} else {
-    statusText = 'Allied';
-}
-document.getElementById('tribal-status').textContent = `Status: ${statusText}`;
-
-updateTribalRelation();
-updateSpaceportPanel();
-}
-
-if (game.tribalTradeCooldown > 0) {
-game.tribalTradeCooldown--;
-document.getElementById('trade-btn').disabled = true;
-const yearsLeft = Math.ceil(game.tribalTradeCooldown / 100);
-document.getElementById('trade-btn').textContent = `Trade (${yearsLeft}yr)`;
-} else {
-document.getElementById('trade-btn').disabled = !hasResources({food: 60, metal: 30, energy: 10}) || game.tribalRelation === 'war' || game.tribalsDefeated;
-document.getElementById('trade-btn').textContent = 'Trade (100→+220)';
-}
+    } else {
+    document.getElementById('trade-btn').disabled = !hasResources({food: 60, metal: 30, energy: 10}) || game.tribalRelation === 'war' || game.tribalsDefeated;
+    document.getElementById('trade-btn').textContent = 'Trade (100→+220)';
+    }
 
     document.getElementById('planet-view').addEventListener('click', handlePlanetClick);
     document.getElementById('planet-view').addEventListener('mousemove', handlePlanetMove);
@@ -4012,9 +4013,9 @@ document.getElementById('trade-btn').textContent = 'Trade (100→+220)';
     document.getElementById('build-city-btn').onclick = startCityPlacement;
     document.getElementById('build-road-btn').onclick = startRoadBuilding;
 
-document.getElementById('charity-small-btn').onclick = () => provideCharity({ food: 30, metal: 15, energy: 5 }, 5);
-document.getElementById('charity-medium-btn').onclick = () => provideCharity({ food: 90, metal: 45, energy: 15 }, 15);
-document.getElementById('charity-large-btn').onclick = () => provideCharity({ food: 240, metal: 120, energy: 40 }, 35);
+    document.getElementById('charity-small-btn').onclick = () => provideCharity({ food: 30, metal: 15, energy: 5 }, 5);
+    document.getElementById('charity-medium-btn').onclick = () => provideCharity({ food: 90, metal: 45, energy: 15 }, 15);
+    document.getElementById('charity-large-btn').onclick = () => provideCharity({ food: 240, metal: 120, energy: 40 }, 35);
 
     document.getElementById('recruit-infantry-btn').onclick = () => recruitUnit('infantry');
     document.getElementById('recruit-cavalry-btn').onclick = () => recruitUnit('cavalry');
@@ -4030,7 +4031,7 @@ document.getElementById('charity-large-btn').onclick = () => provideCharity({ fo
     document.getElementById('start-spaceport-btn').onclick = startSpaceportConstruction;
 
     document.querySelectorAll('.formation-option').forEach(option => {
-option.addEventListener('click', () => {
+    option.addEventListener('click', () => {
     document.querySelectorAll('.formation-option').forEach(o => o.classList.remove('selected'));
     option.classList.add('selected');
     game.battleFormation = option.getAttribute('data-formation');
@@ -4038,58 +4039,58 @@ option.addEventListener('click', () => {
     if (game.currentBattle) {
         openBattlePlanningScreen(game.currentBattle);
     }
-});
-});
-document.getElementById('zoom-in-btn').onclick = () => updateZoom(0.1);
-document.getElementById('zoom-out-btn').onclick = () => updateZoom(-0.1);
+    });
+    });
+    document.getElementById('zoom-in-btn').onclick = () => updateZoom(0.1);
+    document.getElementById('zoom-out-btn').onclick = () => updateZoom(-0.1);
 
-const mainGame = document.getElementById('main-game');
-mainGame.addEventListener('mousedown', (e) => {
-    if (game.placingCity) return;
-    isDragging = true;
-    dragStartX = e.clientX - mapPanX;
-    dragStartY = e.clientY - mapPanY;
-});
-
-mainGame.addEventListener('mousemove', (e) => {
-    if (isDragging && !game.placingCity) {
-        mapPanX = e.clientX - dragStartX;
-        mapPanY = e.clientY - dragStartY;
-        applyMapTransform();
-    }
-});
-
-mainGame.addEventListener('mouseup', () => {
-    isDragging = false;
-});
-
-mainGame.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    updateZoom(e.deltaY > 0 ? -0.05 : 0.05);
-}, { passive: false });
-
-document.getElementById('minimap').addEventListener('click', (e) => {
-    const minimap = document.getElementById('minimap');
-    const rect = minimap.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    
     const mainGame = document.getElementById('main-game');
-    const gameRect = mainGame.getBoundingClientRect();
-    const planetWidth = gameRect.width * 10;
-    const planetHeight = gameRect.height * 10;
-    
-    mapPanX = -(x * planetWidth) + (gameRect.width / 2);
-    mapPanY = -(y * planetHeight) + (gameRect.height / 2);
-    
-    applyMapTransform();
-    updateMinimap();
-});
+    mainGame.addEventListener('mousedown', (e) => {
+        if (game.placingCity) return;
+        isDragging = true;
+        dragStartX = e.clientX - mapPanX;
+        dragStartY = e.clientY - mapPanY;
+    });
 
-document.getElementById('retreat-slider').addEventListener('input', (e) => {
-game.retreatThreshold = parseInt(e.target.value);
-document.getElementById('retreat-value').textContent = game.retreatThreshold;
-});
+    mainGame.addEventListener('mousemove', (e) => {
+        if (isDragging && !game.placingCity) {
+            mapPanX = e.clientX - dragStartX;
+            mapPanY = e.clientY - dragStartY;
+            applyMapTransform();
+        }
+    });
+
+    mainGame.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    mainGame.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        updateZoom(e.deltaY > 0 ? -0.05 : 0.05);
+    }, { passive: false });
+
+    document.getElementById('minimap').addEventListener('click', (e) => {
+        const minimap = document.getElementById('minimap');
+        const rect = minimap.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width;
+        const y = (e.clientY - rect.top) / rect.height;
+
+        const mainGame = document.getElementById('main-game');
+        const gameRect = mainGame.getBoundingClientRect();
+        const planetWidth = gameRect.width * 10;
+        const planetHeight = gameRect.height * 10;
+
+        mapPanX = -(x * planetWidth) + (gameRect.width / 2);
+        mapPanY = -(y * planetHeight) + (gameRect.height / 2);
+
+        applyMapTransform();
+        updateMinimap();
+    });
+
+    document.getElementById('retreat-slider').addEventListener('input', (e) => {
+        game.retreatThreshold = parseInt(e.target.value);
+        document.getElementById('retreat-value').textContent = game.retreatThreshold;
+    });
 
     document.querySelectorAll('.law-option').forEach(option => {
         option.onclick = () => {
