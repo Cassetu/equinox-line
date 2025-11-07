@@ -717,6 +717,22 @@ function updateCityDisplay(city) {
 function selectCity(city) {
     game.selectedCity = city;
     game.selectedType = 'city';
+    const foodColor = city.foodStockpile > 50 ? '#4CAF50' : (city.foodStockpile > 20 ? '#ffaa00' : '#ff4400');
+    const foodText = `
+        <div style="background: rgba(139,69,19,0.2); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <h4 style="color: #DEB887; font-size: 12px; margin-bottom: 6px;">Food Supply</h4>
+            <div style="width: 100%; height: 12px; background: rgba(0,0,0,0.5); border-radius: 5px; overflow: hidden; margin: 5px 0;">
+                <div style="width: ${city.foodStockpile}%; height: 100%; background: ${foodColor}; transition: width 0.3s;"></div>
+            </div>
+            <p style="font-size: 9px;">Stockpile: ${Math.floor(city.foodStockpile)}/100</p>
+            <p style="font-size: 9px;">Consumption: ${city.foodConsumptionRate.toFixed(2)}/tick</p>
+            ${!isCityInHabitableZone(city) && city.foodStockpile < 50 ?
+                '<p style="font-size: 9px; color: #ff4400;">⚠️ Low food! Population dying faster!</p>' : ''}
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 20)" ${game.resources.food < 20 ? 'disabled' : ''}>+20 Food</button>
+                <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 50)" ${game.resources.food < 50 ? 'disabled' : ''}>+50 Food</button>
+            </div>
+        </div>`;
 
     const radius = document.getElementById('placement-radius');
 
@@ -820,8 +836,7 @@ function selectCity(city) {
         stationedUnitsText += `<p style="font-size: 9px; margin-top: 4px; color: #ff4400;">Military Oppression: -${penalty} happiness/yr</p>`;
     }
 
-    panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${specText}${specButtons}${upgradeBtn}${migrateBtn}`;
-    panel.style.display = 'block';
+panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${foodText}${specButtons}${upgradeBtn}${migrateBtn}`;    panel.style.display = 'block';
     document.getElementById('build-road-btn').disabled = false;
 }
 
@@ -1041,6 +1056,52 @@ document.getElementById('messages').innerHTML = '';
 
 generateTerrainElements();
 generateTribalCities();
+
+const startingCity = {
+    id: cityIdCounter++,
+    name: getCityName(),
+    position: 50,
+    x: 50,
+    y: 50,
+    population: 150,
+    maxPopulation: 500,
+    warned: false,
+    zoneType: getZoneType(50),
+    isRebel: false,
+    isConverted: false,
+    upgradeLevel: 0,
+    happiness: 50,
+    conquestRebellionTimer: 0,
+    stationedUnits: { infantry: 0, cavalry: 0, artillery: 0 },
+    tradeBoost: 0,
+    specialization: 'none',
+    foodStockpile: 50,
+    foodConsumptionRate: 0
+};
+
+game.cities.push(startingCity);
+
+const cityEl = document.createElement('div');
+cityEl.className = `city city-${startingCity.zoneType}`;
+cityEl.id = `city-${startingCity.id}`;
+cityEl.style.left = '50%';
+cityEl.style.top = '50%';
+cityEl.style.transform = 'translate(-50%, -50%)';
+cityEl.innerHTML = `<div class="city-label">${startingCity.name}</div><div class="city-icon"></div><div class="population-bar"><div class="population-fill" style="width: 30%"></div></div>`;
+cityEl.onclick = (e) => {
+    e.stopPropagation();
+    if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
+        createRoad(game.roadStartCity, startingCity);
+        game.buildingRoad = false;
+        game.roadStartCity = null;
+        document.getElementById('build-road-btn').classList.remove('active');
+    } else {
+        selectCity(startingCity);
+    }
+};
+generateCityBuildings(cityEl, startingCity);
+document.getElementById('planet-view').appendChild(cityEl);
+
 addMessage('Build your first city in the habitable zone!', 'info');
 addMessage('Tribes will expand over time...', 'warning');
 updateHabitableZone();
@@ -1050,6 +1111,19 @@ if (gameLoop) clearInterval(gameLoop);
 
     applyMapTransform();
     updateMinimap();
+}
+
+function getDistanceMultiplier(x, y) {
+    if (game.cities.length === 0) return 1;
+
+    const closestDist = Math.min(...game.cities.map(city =>
+        Math.sqrt(Math.pow(x - city.x, 2) + Math.pow(y - city.y, 2))
+    ));
+
+    if (closestDist <= 15) return 1;
+    if (closestDist <= 30) return 1.5;
+    if (closestDist <= 45) return 2;
+    return 3;
 }
 
 function update() {
@@ -1182,11 +1256,28 @@ function update() {
         }
 
         if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
-            const baseGrowth = city.isConverted ? 0.3 : 0.5;
-            const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
-            const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod;
+            const foodNeeded = calculateFoodNeeds(city);
+            city.foodConsumptionRate = foodNeeded;
 
-            city.population += Math.max(0.1, growthRate);
+            if (game.resources.food >= foodNeeded) {
+                game.resources.food -= foodNeeded;
+                city.foodStockpile = Math.min(100, city.foodStockpile + 0.5);
+
+                if (city.foodStockpile >= 20) {
+                    const baseGrowth = city.isConverted ? 0.3 : 0.5;
+                    const specGrowthMod = 1 + CITY_SPECIALIZATIONS[city.specialization].growthBonus;
+                    const foodBonus = Math.min(1.5, city.foodStockpile / 50);
+                    const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus;
+                    city.population += Math.max(0.1, growthRate);
+                } else {
+                    city.population += 0.1;
+                }
+            } else {
+                city.foodStockpile = Math.max(0, city.foodStockpile - 1);
+                if (city.foodStockpile < 10) {
+                    city.happiness -= 0.2;
+                }
+            }
 
             const popRatio = city.population / city.maxPopulation;
             const popProductionBonus = 0.5 + (popRatio * 0.5);
@@ -1197,7 +1288,7 @@ function update() {
             const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
             const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
             const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
-            const baseProduction = baseRes;
+            const baseProduction = baseRes + (featureBonus.resourceBonus * 0.01);
 
             if (city.specialization === 'trade') {
                 game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
@@ -1215,26 +1306,41 @@ function update() {
                 game.resources.food += (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
                 game.resources.metal += (baseProduction + (featureBonus.metalBonus * 0.01)) * totalProductionMod * 0.3;
                 game.resources.energy += (baseProduction + (featureBonus.energyBonus * 0.01)) * totalProductionMod * 0.3;
-        }
+            }
 
-        if (game.hasEmbassy) {
-            const embassyBonus = 0.01;
-            game.resources.food += embassyBonus;
-            game.resources.metal += embassyBonus;
-            game.resources.energy += embassyBonus;
-        }
+            if (city.tradeBoost > 0) {
+                city.tradeBoost--;
+                if (city.tradeBoost === 0) {
+                    addMessage(city.name + " trade boost expired", 'info');
+                }
+            }
+        } else {
+            const foodNeeded = calculateFoodNeeds(city);
+            city.foodConsumptionRate = foodNeeded;
 
-        if (city.tradeBoost > 0) {
-        city.tradeBoost--;
-        if (city.tradeBoost === 0) {
-            addMessage(`${city.name}'s trade boost expired`, 'info');
-        }
-    }
-    } else {
-            const dist = getDistanceFromZone(city);
-            const upgradeMultiplier = city.upgradeLevel === 0 ? 1 : (city.upgradeLevel === 1 ? 0.5 : 0.25);
-            const deathRate = Math.min(1, dist / 20) * upgradeMultiplier;
-            city.population -= deathRate;
+            if (city.foodStockpile > 0 && game.resources.food >= foodNeeded) {
+                game.resources.food -= foodNeeded;
+
+                const dist = getDistanceFromZone(city);
+                const upgradeMultiplier = city.upgradeLevel === 0 ? 1 : (city.upgradeLevel === 1 ? 0.5 : 0.25);
+                let deathRate = Math.min(1, dist / 20) * upgradeMultiplier;
+
+                const foodProtection = Math.min(0.7, city.foodStockpile / 100);
+                deathRate *= (1 - foodProtection);
+
+                city.population -= deathRate;
+                city.foodStockpile = Math.max(0, city.foodStockpile - 0.3);
+            } else {
+                const dist = getDistanceFromZone(city);
+                const upgradeMultiplier = city.upgradeLevel === 0 ? 1 : (city.upgradeLevel === 1 ? 0.5 : 0.25);
+                const deathRate = Math.min(1, dist / 20) * upgradeMultiplier;
+                city.population -= deathRate;
+                city.foodStockpile = Math.max(0, city.foodStockpile - 1);
+
+                if (city.foodStockpile === 0) {
+                    city.happiness -= 0.3;
+                }
+            }
         }
 
         city.population = Math.max(0, Math.min(city.population, city.maxPopulation));
@@ -1261,8 +1367,8 @@ function update() {
 
     const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
     if (game.cities.length > 0 && totalPop <= 0) {
-    gameOver('All cities abandoned. Civilization ended.');
-    return;
+        gameOver('All cities abandoned. Civilization ended.');
+        return;
     }
 
     if (game.cities.length > 0 && game.cities.every(city => city.isRebel)) {
@@ -1313,6 +1419,23 @@ function update() {
     }
 
     updateUI();
+}
+
+function sendFoodAid(cityId, amount) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    const foodCost = amount;
+    if (game.resources.food < foodCost) {
+        addMessage('Not enough food!', 'warning');
+        return;
+    }
+
+    game.resources.food -= foodCost;
+    city.foodStockpile = Math.min(100, city.foodStockpile + amount);
+    addMessage(`Sent ${amount} food to ${city.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.4);
+    selectCity(city);
 }
 
 function showPeaceDemand(demand, year) {
@@ -2026,27 +2149,38 @@ for (let i = 0; i < 25; i++) {
 
     }
 
-    function createCity(x, y) {
-const cityCost = { food: 200, metal: 200, energy: 100 };
-if (!hasResources(cityCost)) return;
+function createCity(x, y) {
+    const distMult = getDistanceMultiplier(x, y);
+    const cityCost = {
+        food: Math.floor(200 * distMult),
+        metal: Math.floor(200 * distMult),
+        energy: Math.floor(100 * distMult)
+    };
 
-const city = {
-id: cityIdCounter++,
-name: getCityName(),
-position: x, x, y,
-population: 100,
-maxPopulation: 500,
-warned: false,
-zoneType: getZoneType(x),
-isRebel: false,
-isConverted: false,
-upgradeLevel: 0,
-happiness: 50,
-conquestRebellionTimer: 0,
-stationedUnits: { infantry: 0, cavalry: 0, artillery: 0 },
-tradeBoost: 0,
-specialization: 'none'
-};
+    if (!hasResources(cityCost)) {
+        addMessage(`City costs ${cityCost.food}F, ${cityCost.metal}M, ${cityCost.energy}E at this distance!`, 'warning');
+        return;
+    }
+
+    const city = {
+        id: cityIdCounter++,
+        name: getCityName(),
+        position: x, x, y,
+        population: 100,
+        maxPopulation: 500,
+        warned: false,
+        zoneType: getZoneType(x),
+        isRebel: false,
+        isConverted: false,
+        upgradeLevel: 0,
+        happiness: 50,
+        conquestRebellionTimer: 0,
+        stationedUnits: { infantry: 0, cavalry: 0, artillery: 0 },
+        tradeBoost: 0,
+        specialization: 'none',
+        foodStockpile: 50,
+        foodConsumptionRate: 0
+    };
 
 
 const activeTribals = game.tribalCities.filter(t => !t.isConverted);
@@ -2090,6 +2224,7 @@ document.getElementById('planet-view').appendChild(cityEl);
 
         addMessage(`${city.name} founded!`, 'success');
         updateCityDisplay(city);
+        updateBuildCityButtonText(0, 0);
     }
 
 
@@ -2203,13 +2338,13 @@ function gatherResources() {
 }
 
 function hasResources(cost) {
-if (typeof cost === 'number') {
-    const total = game.resources.food + game.resources.metal + game.resources.energy;
-    return total >= cost;
-}
-return game.resources.food >= (cost.food || 0) &&
-       game.resources.metal >= (cost.metal || 0) &&
-       game.resources.energy >= (cost.energy || 0);
+    if (typeof cost === 'number') {
+        const total = game.resources.food + game.resources.metal + game.resources.energy;
+        return total >= cost;
+    }
+    return game.resources.food >= (cost.food || 0) &&
+           game.resources.metal >= (cost.metal || 0) &&
+           game.resources.energy >= (cost.energy || 0);
 }
 
 function spendResources(cost) {
@@ -2246,9 +2381,39 @@ function spendResources(cost) {
     return true;
 }
 
+function updateBuildCityButtonText(x, y) {
+    const btn = document.getElementById('build-city-btn');
+    if (!game.placingCity) {
+        btn.textContent = 'Place City (200F, 200M, 100E)';
+        return;
+    }
+
+    const distMult = getDistanceMultiplier(x, y);
+    const cost = {
+        food: Math.floor(200 * distMult),
+        metal: Math.floor(200 * distMult),
+        energy: Math.floor(100 * distMult)
+    };
+
+    const canAfford = hasResources(cost);
+    const validLocation = canPlaceCityAt(x, y);
+
+    let text = `Place City (${cost.food}F, ${cost.metal}M, ${cost.energy}E)`;
+    if (distMult > 1) {
+        text += ` [${distMult}x distance]`;
+    }
+    if (!canAfford) {
+        text += ' - NOT ENOUGH RESOURCES';
+    } else if (!validLocation) {
+        text += ' - TOO CLOSE';
+    }
+
+    btn.textContent = text;
+}
 
 function startCityPlacement() {
-    if (!hasResources({ food: 200, metal: 200, energy: 100 })) {
+    const baseCost = { food: 200, metal: 200, energy: 100 };
+    if (!hasResources(baseCost)) {
         AudioManager.playSFX('sfx-error', 0.4);
         addMessage('Not enough resources!', 'warning');
         return;
@@ -2259,7 +2424,7 @@ function startCityPlacement() {
     document.getElementById('planet-view').classList.add('placing-city');
     document.getElementById('build-city-btn').classList.add('active');
     document.getElementById('build-road-btn').classList.remove('active');
-    addMessage('Click to place city. Green = valid, Red = invalid.', 'info');
+    addMessage('Base cost: 200F, 200M, 100E. Cost increases with distance from cities!', 'info');
 }
 
 function cancelCityPlacement() {
@@ -2268,6 +2433,7 @@ function cancelCityPlacement() {
     document.getElementById('build-city-btn').classList.remove('active');
     document.getElementById('placement-preview').classList.remove('active');
     document.getElementById('placement-radius').classList.remove('active');
+    updateBuildCityButtonText(0, 0);
 }
 
 function canPlaceCityAt(x, y) {
@@ -2379,8 +2545,6 @@ attackersInRange.forEach((attacker, index) => {
     }, 3000);
 });
 }
-
-
 
 function showTribalAttackArrow(fromTribal, toCity) {
 const totalUnits = fromTribal.units.infantry + fromTribal.units.cavalry + fromTribal.units.artillery;
@@ -2508,8 +2672,6 @@ units.forEach((unit, index) => {
 });
 }
 
-
-
 function handlePlanetClick(e) {
     if (!game.placingCity && !game.buildingRoad) {
         document.getElementById('placement-radius').classList.remove('active');
@@ -2553,39 +2715,49 @@ function handlePlanetMove(e) {
     radius.classList.add('active');
 
     preview.classList.toggle('invalid', !canPlaceCityAt(x, y));
+
+    updateBuildCityButtonText(x, y);
 }
 
-    function createRoad(city1, city2) {
-const roadCost = { food: 0, metal: 100, energy: 50 };
-if (!hasResources(roadCost)) {
-addMessage('Not enough resources!', 'warning');
-return;
-}
+function createRoad(city1, city2) {
+    const distance = Math.sqrt(Math.pow(city1.x - city2.x, 2) + Math.pow(city1.y - city2.y, 2));
+    const distMult = distance > 20 ? 1.5 : 1;
 
-if (city2.isRebel) {
-    addMessage('Cannot build road to a rebel city!', 'warning');
-    return;
-}
+    const roadCost = {
+        food: 0,
+        metal: Math.floor(100 * distMult),
+        energy: Math.floor(50 * distMult)
+    };
 
-const exists = game.roads.some(r => (r.from === city1.id && r.to === city2.id) || (r.from === city2.id && r.to === city1.id));
-if (exists) {
-    addMessage('Road already exists!', 'warning');
-    return;
-}
-const road = { id: roadIdCounter++, from: city1.id, to: city2.id };
-game.roads.push(road);
-spendResources(roadCost);
+    if (!hasResources(roadCost)) {
+        addMessage(`Road costs ${roadCost.metal}M, ${roadCost.energy}E at this distance!`, 'warning');
+        return;
+    }
 
-const roadEl = document.createElement('div');
-roadEl.className = 'road';
-roadEl.id = `road-${road.id}`;
-document.getElementById('planet-view').appendChild(roadEl);
+    if (city2.isRebel) {
+        addMessage('Cannot build road to a rebel city!', 'warning');
+        return;
+    }
 
-setTimeout(() => {
-    updateRoadPosition(roadEl, city1.id, city2.id);
-}, 0);
+    const exists = game.roads.some(r => (r.from === city1.id && r.to === city2.id) || (r.from === city2.id && r.to === city1.id));
+    if (exists) {
+        addMessage('Road already exists!', 'warning');
+        return;
+    }
+    const road = { id: roadIdCounter++, from: city1.id, to: city2.id };
+    game.roads.push(road);
+    spendResources(roadCost);
 
-addMessage(`Road built: ${city1.name} ↔ ${city2.name}!`, 'success');
+    const roadEl = document.createElement('div');
+    roadEl.className = 'road';
+    roadEl.id = `road-${road.id}`;
+    document.getElementById('planet-view').appendChild(roadEl);
+
+    setTimeout(() => {
+        updateRoadPosition(roadEl, city1.id, city2.id);
+    }, 0);
+
+    addMessage(`Road built: ${city1.name} ↔ ${city2.name}!`, 'success');
 }
 
 function startRoadBuilding() {
@@ -2608,7 +2780,6 @@ function startRoadBuilding() {
     document.getElementById('build-city-btn').classList.remove('active');
     addMessage(`Building road from ${game.selectedCity.name}. Click another city.`, 'info');
 }
-
 
 function generateTribalCities() {
     const numCities = Math.floor(Math.random() * 2) + 2;
@@ -3507,7 +3678,9 @@ function convertTribalCity(tribal) {
         isRebel: true, isConverted: true, upgradeLevel: 0,
         happiness: 20, conquestRebellionTimer: 300,
         stationedUnits: { infantry: 1, cavalry: 0, artillery: 0 },
-        tradeBoost: 0
+        tradeBoost: 0,
+        foodStockpile: 30,
+        foodConsumptionRate: 0
     };
 
             game.cities.push(city);
@@ -3534,6 +3707,21 @@ function convertTribalCity(tribal) {
             updateCityDisplay(city);
 
     checkTribalDefeat();
+}
+
+function calculateFoodNeeds(city) {
+    const baseFoodPerPop = 0.01;
+    const inZone = isCityInHabitableZone(city);
+
+    let consumption = city.population * baseFoodPerPop;
+
+    if (!inZone) {
+        const dist = getDistanceFromZone(city);
+        const harshnessMult = 1 + (Math.min(dist, 30) / 30);
+        consumption *= harshnessMult;
+    }
+
+    return consumption || 0;
 }
 
 function checkTribalDefeat() {
@@ -4006,6 +4194,7 @@ function updateUI() {
     document.getElementById('planet-view').addEventListener('mouseleave', () => {
         if (game.placingCity) {
             document.getElementById('placement-preview').classList.remove('active');
+            updateBuildCityButtonText(0, 0);
         }
         if (!game.selectedCity) {
             document.getElementById('placement-radius').classList.remove('active');
