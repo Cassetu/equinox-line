@@ -1491,3 +1491,126 @@ button.active { background: #00ff00; color: #000; border-color: #00ff00; }
     font-size: 20px;
     font-weight: bold;
 }
+
+#victory-progress-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10001;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.victory-panel-content {
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f3460 100%);
+    border: 3px solid #00ff00;
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+}
+
+.victory-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.victory-panel-header h2 {
+    color: #00ff00;
+    margin: 0;
+    font-size: 24px;
+}
+
+#close-victory-panel {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    background: rgba(255, 0, 0, 0.3);
+    border: 2px solid #ff4400;
+}
+
+#victory-conditions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.victory-condition-item {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(0, 255, 0, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.victory-condition-item:hover {
+    border-color: rgba(0, 255, 0, 0.6);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+.victory-condition-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.victory-condition-icon {
+    font-size: 48px;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+.victory-condition-info {
+    flex: 1;
+}
+
+.victory-condition-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #00ff00;
+    margin-bottom: 5px;
+}
+
+.victory-condition-desc {
+    font-size: 12px;
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+.victory-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.victory-progress-bar {
+    flex: 1;
+    height: 25px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #00ff00;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.victory-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00, #00ff88);
+    transition: width 0.5s ease;
+}
+
+.victory-progress-text {
+    font-size: 14px;
+    font-weight: bold;
+    color: #00ff00;
+    min-width: 120px;
+    text-align: right;
+}

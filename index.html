@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Equinox Line - V1.0.15</title>
+    <title>Equinox Line - V1.0.16</title>
     <link href="style.css" rel="stylesheet"/>
 </head>
 <audio id="bg-music" loop>
@@ -45,7 +45,7 @@
 </button>
 
 <script src="audio.js"></script>
-
+<script src="win.js"></script>
 <script src="tree.js"></script>
 
 <body>
@@ -249,12 +249,12 @@
         <h3>SPACEPORT PROJECT</h3>
         <p>Evacuate to a stable planet!</p>
         <p><strong>Requirements:</strong></p>
-        <p>Population: <span id="sp-pop-current">0</span>/<span id="sp-pop-req">2000</span> | Resources: <span
-                id="sp-res-current">0</span>/<span id="sp-res-req">10000</span></p>
+        <p>Population: <span id="sp-pop-current">0</span>/<span id="sp-pop-req">5000</span> | Resources: <span id="sp-res-current">0</span>: 4000F + 4000M + 4000E</p>
+
         <div class="progress-bar-container">
             <div class="progress-bar-fill" id="spaceport-progress-bar" style="width: 0%">0%</div>
         </div>
-        <p style="font-size: 9px; opacity: 0.8;">Costs 500 res/year once started</p>
+        <p style="font-size: 9px; opacity: 0.8;">Costs 4000F + 4000M + 4000E upfront. Takes 10 years to build. Pop must stay above 3500.</p>
         <button class="action-btn" id="start-spaceport-btn" style="font-size: 11px;">Start Construction</button>
     </div>
 

@@ -1038,6 +1038,7 @@ function migrateFrom(cityId) {
 
 function startGame() {
     document.getElementById('tutorial').style.display = 'none';
+    VictoryConditions.init();
     game.running = true;
     TechTree.init();
     usedNames = [];
@@ -1047,6 +1048,7 @@ function startGame() {
     Object.assign(game, {
     cities: [], roads: [], features: [], tribalCities: [], tribalRoads: [],
     messages: [], selectedCity: null, spaceportProgress: 0, spaceportBuilding: false,
+    spaceportYearStarted: 0,
     resources: { food: 500, metal: 400, energy: 250 }, year: 0,
     gatherCooldown: 0, tribalTradeCooldown: 0, tribalReputation: 50,
     tribalRelation: 'neutral', hasEmbassy: false, activeLaw: 'none',
@@ -1142,6 +1144,7 @@ function getDistanceMultiplier(x, y) {
 
 function update() {
     if (!game.running || game.paused || game.ddrActive) return;
+    VictoryConditions.checkVictory();
 
     if (isNaN(game.resources.food) || isNaN(game.resources.metal) || isNaN(game.resources.energy)) {
             console.trace('RESOURCES BECAME NaN! Stack trace above');
@@ -1167,23 +1170,24 @@ function update() {
     updateHabitableZone();
 
     if (game.spaceportBuilding) {
-        const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
-        if (totalRes >= 5) {
-            const foodCost = Math.min(game.resources.food, 1.67);
-            const metalCost = Math.min(game.resources.metal - foodCost, 1.67);
-            const energyCost = 5 - foodCost - metalCost;
-            game.resources.food -= foodCost;
-            game.resources.metal -= metalCost;
-            game.resources.energy -= energyCost;
-            if (game.spaceportProgress >= 100) {
-                victory();
-                return;
-            }
-        } else {
-            addMessage('Spaceport construction halted!', 'danger');
+        const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
+
+        if (totalPop < 3500) {
+            addMessage('Spaceport construction HALTED! Population dropped below 3500!', 'danger');
             game.spaceportBuilding = false;
+            game.spaceportProgress = 0;
+            AudioManager.playSFX('sfx-alert', 0.7);
+        } else {
+            const yearsElapsed = game.year - game.spaceportYearStarted;
+            game.spaceportProgress = Math.min(100, (yearsElapsed / 10) * 100);
+
+            if (game.spaceportProgress >= 100) {
+                VictoryConditions.checkVictory();
+            }
         }
     }
+
+
     tribalExpansion();
     tribalMilitaryManagement();
     checkTribalWarDeclaration();
@@ -4124,8 +4128,9 @@ function toggleSpaceportPanel() {
 
 function updateSpaceportPanel() {
     const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
-    document.getElementById('sp-pop-current').textContent = totalPop;
     const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+
+    document.getElementById('sp-pop-current').textContent = totalPop;
     document.getElementById('sp-res-current').textContent = Math.floor(totalRes);
 
     const progressBar = document.getElementById('spaceport-progress-bar');
@@ -4134,9 +4139,10 @@ function updateSpaceportPanel() {
 
     const startBtn = document.getElementById('start-spaceport-btn');
     if (game.spaceportBuilding) {
-        startBtn.textContent = 'Construction In Progress...';
+        const yearsLeft = Math.ceil(10 - (game.spaceportProgress / 10));
+        startBtn.textContent = `Building... ${yearsLeft} years left`;
         startBtn.disabled = true;
-    } else if (totalPop >= 2000 && totalRes >= 10000) {
+    } else if (totalPop >= 5000 && game.resources.food >= 4000 && game.resources.metal >= 4000 && game.resources.energy >= 4000) {
         startBtn.textContent = 'Start Construction';
         startBtn.disabled = false;
     } else {
@@ -4146,14 +4152,19 @@ function updateSpaceportPanel() {
 }
 
 function startSpaceportConstruction() {
-    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
     const totalPop = game.cities.reduce((sum, c) => sum + c.population, 0);
-    if (totalPop < 2000 || totalRes < 10000) {
+    if (totalPop < 5000 || game.resources.food < 4000 || game.resources.metal < 4000 || game.resources.energy < 4000) {
         addMessage('Requirements not met!', 'warning');
         return;
     }
+
+    game.resources.food -= 4000;
+    game.resources.metal -= 4000;
+    game.resources.energy -= 4000;
+
     game.spaceportBuilding = true;
-    addMessage('Spaceport construction begun!', 'success');
+    game.spaceportYearStarted = game.year;
+    addMessage('Spaceport construction begun! Will take 10 years.', 'success');
     updateSpaceportPanel();
 }
 
@@ -4253,7 +4264,15 @@ function updateUI() {
 
     updateTribalRelation();
     updateSpaceportPanel();
-    }
+
+    const progressDisplay = document.getElementById('victory-progress-display') || (() => {
+        const div = document.createElement('div');
+        div.id = 'victory-progress-display';
+        document.body.appendChild(div);
+        return div;
+    })();
+    progressDisplay.textContent = `Victory: ${VictoryConditions.conditions[VictoryConditions.selectedCondition].name} - ${VictoryConditions.getProgressText()}`;
+}
 
     if (game.tribalTradeCooldown > 0) {
     game.tribalTradeCooldown--;
