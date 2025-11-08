@@ -7,7 +7,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'infantryAttack',
         value: 0.05,
-        position: { x: 80, y: 80 },
+        position: { x: 50, y: 50 },
         category: 'military'
     },
     disciplinedInfantry: {
@@ -18,7 +18,7 @@ const TECHNOLOGIES = {
         requires: ['basicInfantry'],
         effect: 'infantryAttack',
         value: 0.10,
-        position: { x: 230, y: 80 },
+        position: { x: 50, y: 220 },
         category: 'military'
     },
     eliteInfantry: {
@@ -29,7 +29,7 @@ const TECHNOLOGIES = {
         requires: ['disciplinedInfantry'],
         effect: 'infantryAttack',
         value: 0.15,
-        position: { x: 380, y: 80 },
+        position: { x: 50, y: 390 },
         category: 'military'
     },
     professionalArmy: {
@@ -40,7 +40,7 @@ const TECHNOLOGIES = {
         requires: ['eliteInfantry'],
         effect: 'infantryAttack',
         value: 0.25,
-        position: { x: 530, y: 80 },
+        position: { x: 50, y: 560 },
         category: 'military'
     },
 
@@ -52,7 +52,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'cavalryAttack',
         value: 0.05,
-        position: { x: 80, y: 180 },
+        position: { x: 250, y: 50 },
         category: 'military'
     },
     lightCavalry: {
@@ -63,7 +63,7 @@ const TECHNOLOGIES = {
         requires: ['mountedScouts'],
         effect: 'cavalryAttack',
         value: 0.10,
-        position: { x: 230, y: 180 },
+        position: { x: 250, y: 220 },
         category: 'military'
     },
     heavyCavalry: {
@@ -74,7 +74,7 @@ const TECHNOLOGIES = {
         requires: ['lightCavalry'],
         effect: 'cavalryAttack',
         value: 0.15,
-        position: { x: 380, y: 180 },
+        position: { x: 250, y: 390 },
         category: 'military'
     },
     shockCavalry: {
@@ -85,7 +85,7 @@ const TECHNOLOGIES = {
         requires: ['heavyCavalry'],
         effect: 'cavalryAttack',
         value: 0.25,
-        position: { x: 530, y: 180 },
+        position: { x: 250, y: 560 },
         category: 'military'
     },
 
@@ -97,7 +97,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'artilleryAttack',
         value: 0.05,
-        position: { x: 80, y: 280 },
+        position: { x: 450, y: 50 },
         category: 'military'
     },
     mortars: {
@@ -108,7 +108,7 @@ const TECHNOLOGIES = {
         requires: ['siegeEngines'],
         effect: 'artilleryAttack',
         value: 0.12,
-        position: { x: 230, y: 280 },
+        position: { x: 450, y: 220 },
         category: 'military'
     },
     fieldHowitzers: {
@@ -119,7 +119,7 @@ const TECHNOLOGIES = {
         requires: ['mortars'],
         effect: 'artilleryAttack',
         value: 0.20,
-        position: { x: 380, y: 280 },
+        position: { x: 450, y: 390 },
         category: 'military'
     },
     heavyArtillery: {
@@ -130,7 +130,7 @@ const TECHNOLOGIES = {
         requires: ['fieldHowitzers'],
         effect: 'artilleryAttack',
         value: 0.35,
-        position: { x: 530, y: 280 },
+        position: { x: 450, y: 560 },
         category: 'military'
     },
 
@@ -142,7 +142,7 @@ const TECHNOLOGIES = {
         requires: ['basicInfantry', 'mountedScouts'],
         effect: 'defenseBonus',
         value: 0.10,
-        position: { x: 155, y: 130 },
+        position: { x: 650, y: 135 },
         category: 'military'
     },
     advancedTactics: {
@@ -153,7 +153,7 @@ const TECHNOLOGIES = {
         requires: ['combatTactics', 'disciplinedInfantry', 'lightCavalry'],
         effect: 'defenseBonus',
         value: 0.20,
-        position: { x: 305, y: 130 },
+        position: { x: 650, y: 305 },
         category: 'military'
     },
 
@@ -165,7 +165,7 @@ const TECHNOLOGIES = {
         requires: ['combatTactics'],
         effect: 'recruitmentCost',
         value: 0.20,
-        position: { x: 155, y: 230 },
+        position: { x: 650, y: 475 },
         category: 'military'
     },
     professionalRecruitment: {
@@ -176,7 +176,7 @@ const TECHNOLOGIES = {
         requires: ['massRecruitment', 'advancedTactics'],
         effect: 'recruitmentCost',
         value: 0.40,
-        position: { x: 305, y: 230 },
+        position: { x: 650, y: 645 },
         category: 'military'
     },
 
@@ -188,7 +188,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'foodProduction',
         value: 0.10,
-        position: { x: 80, y: 380 },
+        position: { x: 50, y: 800 },
         category: 'agriculture'
     },
     irrigation: {
@@ -199,7 +199,7 @@ const TECHNOLOGIES = {
         requires: ['basicFarming'],
         effect: 'foodProduction',
         value: 0.20,
-        position: { x: 230, y: 380 },
+        position: { x: 50, y: 970 },
         category: 'agriculture'
     },
     cropRotation: {
@@ -210,7 +210,7 @@ const TECHNOLOGIES = {
         requires: ['irrigation'],
         effect: 'foodProduction',
         value: 0.30,
-        position: { x: 380, y: 380 },
+        position: { x: 50, y: 1140 },
         category: 'agriculture'
     },
     mechanizedFarming: {
@@ -221,7 +221,7 @@ const TECHNOLOGIES = {
         requires: ['cropRotation'],
         effect: 'foodProduction',
         value: 0.50,
-        position: { x: 530, y: 380 },
+        position: { x: 50, y: 1310 },
         category: 'agriculture'
     },
 
@@ -233,7 +233,7 @@ const TECHNOLOGIES = {
         requires: ['basicFarming'],
         effect: 'popGrowth',
         value: 0.15,
-        position: { x: 155, y: 440 },
+        position: { x: 250, y: 885 },
         category: 'agriculture'
     },
     advancedBreeding: {
@@ -244,7 +244,7 @@ const TECHNOLOGIES = {
         requires: ['fertilizers', 'irrigation'],
         effect: 'popGrowth',
         value: 0.30,
-        position: { x: 305, y: 440 },
+        position: { x: 250, y: 1055 },
         category: 'agriculture'
     },
 
@@ -256,7 +256,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'metalProduction',
         value: 0.15,
-        position: { x: 680, y: 80 },
+        position: { x: 450, y: 800 },
         category: 'industry'
     },
     deepMining: {
@@ -267,7 +267,7 @@ const TECHNOLOGIES = {
         requires: ['basicMining'],
         effect: 'metalProduction',
         value: 0.25,
-        position: { x: 830, y: 80 },
+        position: { x: 450, y: 970 },
         category: 'industry'
     },
     industrialForges: {
@@ -278,7 +278,7 @@ const TECHNOLOGIES = {
         requires: ['deepMining'],
         effect: 'metalProduction',
         value: 0.40,
-        position: { x: 980, y: 80 },
+        position: { x: 450, y: 1140 },
         category: 'industry'
     },
 
@@ -290,7 +290,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'energyProduction',
         value: 0.15,
-        position: { x: 680, y: 180 },
+        position: { x: 650, y: 800 },
         category: 'industry'
     },
     steamPower: {
@@ -301,7 +301,7 @@ const TECHNOLOGIES = {
         requires: ['windmills'],
         effect: 'energyProduction',
         value: 0.30,
-        position: { x: 830, y: 180 },
+        position: { x: 650, y: 970 },
         category: 'industry'
     },
     advancedGenerators: {
@@ -312,7 +312,7 @@ const TECHNOLOGIES = {
         requires: ['steamPower'],
         effect: 'energyProduction',
         value: 0.50,
-        position: { x: 980, y: 180 },
+        position: { x: 650, y: 1140 },
         category: 'industry'
     },
 
@@ -324,7 +324,7 @@ const TECHNOLOGIES = {
         requires: ['deepMining', 'steamPower'],
         effect: 'allProduction',
         value: 0.20,
-        position: { x: 755, y: 130 },
+        position: { x: 250, y: 1225 },
         category: 'industry'
     },
 
@@ -336,7 +336,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'roadCost',
         value: 0.25,
-        position: { x: 680, y: 280 },
+        position: { x: 50, y: 1480 },
         category: 'infrastructure'
     },
     pavedRoads: {
@@ -347,7 +347,7 @@ const TECHNOLOGIES = {
         requires: ['dirtRoads'],
         effect: 'roadCost',
         value: 0.50,
-        position: { x: 830, y: 280 },
+        position: { x: 50, y: 1650 },
         category: 'infrastructure'
     },
     highways: {
@@ -358,7 +358,7 @@ const TECHNOLOGIES = {
         requires: ['pavedRoads'],
         effect: 'roadBonus',
         value: 0.10,
-        position: { x: 980, y: 280 },
+        position: { x: 50, y: 1820 },
         category: 'infrastructure'
     },
 
@@ -370,7 +370,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'maxPopulation',
         value: 50,
-        position: { x: 680, y: 380 },
+        position: { x: 250, y: 1480 },
         category: 'infrastructure'
     },
     apartments: {
@@ -381,7 +381,7 @@ const TECHNOLOGIES = {
         requires: ['basicHousing'],
         effect: 'maxPopulation',
         value: 100,
-        position: { x: 830, y: 380 },
+        position: { x: 250, y: 1650 },
         category: 'infrastructure'
     },
     skyscrapers: {
@@ -392,7 +392,7 @@ const TECHNOLOGIES = {
         requires: ['apartments'],
         effect: 'maxPopulation',
         value: 200,
-        position: { x: 980, y: 380 },
+        position: { x: 250, y: 1820 },
         category: 'infrastructure'
     },
 
@@ -404,7 +404,7 @@ const TECHNOLOGIES = {
         requires: [],
         effect: 'upgradeCost',
         value: 0.20,
-        position: { x: 680, y: 480 },
+        position: { x: 450, y: 1480 },
         category: 'infrastructure'
     },
     stoneWalls: {
@@ -415,7 +415,7 @@ const TECHNOLOGIES = {
         requires: ['woodenWalls'],
         effect: 'upgradeCost',
         value: 0.40,
-        position: { x: 830, y: 480 },
+        position: { x: 450, y: 1650 },
         category: 'infrastructure'
     },
     fortresses: {
@@ -426,7 +426,7 @@ const TECHNOLOGIES = {
         requires: ['stoneWalls'],
         effect: 'cityDefense',
         value: 0.15,
-        position: { x: 980, y: 480 },
+        position: { x: 450, y: 1820 },
         category: 'infrastructure'
     },
 
@@ -438,7 +438,7 @@ const TECHNOLOGIES = {
         requires: ['basicHousing', 'dirtRoads'],
         effect: 'cityCost',
         value: 0.20,
-        position: { x: 755, y: 330 },
+        position: { x: 650, y: 1565 },
         category: 'infrastructure'
     },
     urbanPlanning: {
@@ -449,7 +449,7 @@ const TECHNOLOGIES = {
         requires: ['settlementPlanning', 'apartments', 'pavedRoads'],
         effect: 'cityCost',
         value: 0.40,
-        position: { x: 905, y: 330 },
+        position: { x: 650, y: 1735 },
         category: 'infrastructure'
     }
 };
@@ -484,8 +484,9 @@ const TechTree = {
                     <div id="research-points-display">Research Points: <span id="rp-value">0</span></div>
                     <button id="close-tech-tree">✕</button>
                 </div>
-                <canvas id="tech-canvas"></canvas>
-                <div id="tech-nodes-container"></div>
+                <div id="tech-nodes-container">
+                    <canvas id="tech-canvas"></canvas>
+                </div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -513,8 +514,24 @@ const TechTree = {
         const container = document.getElementById('tech-nodes-container');
         if (!container) return;
 
+        const existingCanvas = container.querySelector('#tech-canvas');
+        const canvasParent = existingCanvas ? existingCanvas.parentElement : null;
+
         container.innerHTML = '';
         document.getElementById('rp-value').textContent = Math.floor(game.researchPoints);
+
+        if (existingCanvas && canvasParent === container) {
+            container.appendChild(existingCanvas);
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.style.width = '100%';
+        wrapper.style.zIndex = '2';
+
+        const maxY = Math.max(...Object.values(TECHNOLOGIES).map(t => t.position.y)) + 200;
+        wrapper.style.height = maxY + 'px';
+        wrapper.style.minHeight = maxY + 'px';
 
         Object.keys(TECHNOLOGIES).forEach(techKey => {
             const tech = TECHNOLOGIES[techKey];
@@ -543,16 +560,23 @@ const TechTree = {
                 ${isUnlocked ? '<div class="tech-node-check">✓</div>' : ''}
             `;
 
-            container.appendChild(node);
+            wrapper.appendChild(node);
         });
+
+        container.appendChild(wrapper);
     },
 
     drawConnections() {
         const canvas = document.getElementById('tech-canvas');
+        const container = document.getElementById('tech-nodes-container');
         const ctx = canvas.getContext('2d');
 
-        canvas.width = 1150;
-        canvas.height = 568;
+        const maxY = Math.max(...Object.values(TECHNOLOGIES).map(t => t.position.y)) + 200;
+        canvas.width = 860;
+        canvas.height = maxY;
+
+        canvas.style.width = '860px';
+        canvas.style.height = maxY + 'px';
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -561,8 +585,8 @@ const TechTree = {
 
             if (tech.requires.length === 0) return;
 
-            const toX = tech.position.x;
-            const toY = tech.position.y + 40;
+            const toX = tech.position.x + 60 + 20;
+            const toY = tech.position.y + 20;
 
             if (tech.requires.length === 1) {
                 const reqKey = tech.requires[0];
@@ -571,26 +595,45 @@ const TechTree = {
                 const isToUnlocked = this.unlockedTechs.includes(techKey);
                 const bothUnlocked = isFromUnlocked && isToUnlocked;
 
-                const fromX = fromTech.position.x + 80;
-                const fromY = fromTech.position.y + 40;
+                const fromX = fromTech.position.x + 60 + 20;
+                const fromY = fromTech.position.y + 120;
+
+                const midY = (fromY + toY) / 2;
 
                 ctx.beginPath();
                 ctx.moveTo(fromX, fromY);
-                ctx.lineTo(toX, toY);
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = bothUnlocked ? '#00ff00' : 'rgba(255,255,255,0.3)';
+                ctx.bezierCurveTo(fromX, midY, toX, midY, toX, toY);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = bothUnlocked ? '#00ff00' : 'rgba(100, 150, 255, 0.4)';
 
                 if (bothUnlocked) {
-                    ctx.shadowBlur = 10;
+                    ctx.shadowBlur = 15;
                     ctx.shadowColor = '#00ff00';
                 } else {
-                    ctx.shadowBlur = 0;
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = 'rgba(100, 150, 255, 0.3)';
                 }
 
                 ctx.stroke();
+
+                if (bothUnlocked) {
+                    ctx.beginPath();
+                    ctx.arc(toX, toY, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.shadowBlur = 20;
+                    ctx.fill();
+                }
             } else {
-                const convergenceX = toX - 35;
-                const convergenceY = toY;
+                const avgX = tech.requires.reduce((sum, reqKey) => {
+                    return sum + TECHNOLOGIES[reqKey].position.x;
+                }, 0) / tech.requires.length;
+
+                const avgY = tech.requires.reduce((sum, reqKey) => {
+                    return sum + TECHNOLOGIES[reqKey].position.y;
+                }, 0) / tech.requires.length;
+
+                const convergenceX = avgX + 60 + 20;
+                const convergenceY = avgY + 140;
 
                 tech.requires.forEach(reqKey => {
                     const fromTech = TECHNOLOGIES[reqKey];
@@ -598,20 +641,23 @@ const TechTree = {
                     const isToUnlocked = this.unlockedTechs.includes(techKey);
                     const allUnlocked = allReqsUnlocked && isToUnlocked;
 
-                    const fromX = fromTech.position.x + 80;
-                    const fromY = fromTech.position.y + 40;
+                    const fromX = fromTech.position.x + 60 + 20;
+                    const fromY = fromTech.position.y + 120;
+
+                    const midY = (fromY + convergenceY) / 2;
 
                     ctx.beginPath();
                     ctx.moveTo(fromX, fromY);
-                    ctx.lineTo(convergenceX, convergenceY);
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = allUnlocked ? '#00ff00' : 'rgba(255,255,255,0.3)';
+                    ctx.bezierCurveTo(fromX, midY, convergenceX, midY, convergenceX, convergenceY);
+                    ctx.lineWidth = 4;
+                    ctx.strokeStyle = allUnlocked ? '#00ff00' : 'rgba(100, 150, 255, 0.4)';
 
                     if (allUnlocked) {
-                        ctx.shadowBlur = 10;
+                        ctx.shadowBlur = 15;
                         ctx.shadowColor = '#00ff00';
                     } else {
-                        ctx.shadowBlur = 0;
+                        ctx.shadowBlur = 5;
+                        ctx.shadowColor = 'rgba(100, 150, 255, 0.3)';
                     }
 
                     ctx.stroke();
@@ -621,25 +667,37 @@ const TechTree = {
                 const isToUnlocked = this.unlockedTechs.includes(techKey);
                 const allUnlocked = allReqsUnlocked && isToUnlocked;
 
+                const midY = (convergenceY + toY) / 2;
+
                 ctx.beginPath();
                 ctx.moveTo(convergenceX, convergenceY);
-                ctx.lineTo(toX, toY);
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = allUnlocked ? '#00ff00' : 'rgba(255,255,255,0.3)';
+                ctx.bezierCurveTo(convergenceX, midY, toX, midY, toX, toY);
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = allUnlocked ? '#00ff00' : 'rgba(100, 150, 255, 0.4)';
 
                 if (allUnlocked) {
-                    ctx.shadowBlur = 15;
+                    ctx.shadowBlur = 20;
                     ctx.shadowColor = '#00ff00';
                 } else {
-                    ctx.shadowBlur = 0;
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = 'rgba(100, 150, 255, 0.3)';
                 }
 
                 ctx.stroke();
 
                 ctx.beginPath();
-                ctx.arc(convergenceX, convergenceY, 6, 0, Math.PI * 2);
-                ctx.fillStyle = allUnlocked ? '#00ff00' : 'rgba(255,255,255,0.5)';
+                ctx.arc(convergenceX, convergenceY, 8, 0, Math.PI * 2);
+                ctx.fillStyle = allUnlocked ? '#00ff00' : 'rgba(100, 150, 255, 0.6)';
+                ctx.shadowBlur = allUnlocked ? 25 : 10;
                 ctx.fill();
+
+                if (allUnlocked) {
+                    ctx.beginPath();
+                    ctx.arc(toX, toY, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ff00';
+                    ctx.shadowBlur = 20;
+                    ctx.fill();
+                }
             }
         });
     },
