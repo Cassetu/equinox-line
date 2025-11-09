@@ -67,6 +67,73 @@ research: {
 }
 };
 
+const ENTERTAINMENT_DISTRICTS = {
+    theater: {
+        name: 'Theater',
+        icon: '🎭',
+        happinessPerYear: 0.5,
+        cost: { food: 100, metal: 150, energy: 50 },
+        buildingStyle: 'theater'
+    },
+    arena: {
+        name: 'Arena',
+        icon: '🏟️',
+        happinessPerYear: 0.7,
+        cost: { food: 150, metal: 200, energy: 75 },
+        buildingStyle: 'arena'
+    },
+    garden: {
+        name: 'Public Garden',
+        icon: '🌳',
+        happinessPerYear: 0.4,
+        cost: { food: 80, metal: 100, energy: 30 },
+        buildingStyle: 'garden'
+    }
+};
+
+const GOVERNOR_TYPES = {
+    none: {
+        name: 'No Governor',
+        icon: '👤',
+        happinessPerYear: 0,
+        resourceMod: 1.0,
+        defenseMod: 1.0,
+        cost: 0
+    },
+    benevolent: {
+        name: 'Benevolent Governor',
+        icon: '😊',
+        happinessPerYear: 2,
+        resourceMod: 0.9,
+        defenseMod: 1.0,
+        cost: { food: 200, metal: 100, energy: 50 }
+    },
+    military: {
+        name: 'Military Governor',
+        icon: '⚔️',
+        happinessPerYear: -1,
+        resourceMod: 1.0,
+        defenseMod: 1.3,
+        cost: { food: 150, metal: 150, energy: 75 }
+    },
+    economist: {
+        name: 'Economic Governor',
+        icon: '💰',
+        happinessPerYear: 0,
+        resourceMod: 1.25,
+        defenseMod: 0.9,
+        cost: { food: 250, metal: 200, energy: 100 }
+    },
+    diplomat: {
+        name: 'Diplomatic Governor',
+        icon: '🤝',
+        happinessPerYear: 1.5,
+        resourceMod: 1.1,
+        defenseMod: 1.0,
+        cost: { food: 200, metal: 150, energy: 150 }
+    }
+};
+
 const LAWS = {
         none: { name: 'No Special Laws', resourceBonus: 0, happinessPenalty: 0 },
         productive: { name: 'Increased Production', resourceBonus: 0.5, happinessPenalty: -1 },
@@ -555,30 +622,40 @@ function callReinforcements() {
         return 'habitable';
     }
 
-    function getCityName() {
-        const available = CITY_NAMES.filter(n => !usedNames.includes(n));
-        if (available.length === 0) return `Settlement ${cityIdCounter}`;
-        const name = available[Math.floor(Math.random() * available.length)];
-        usedNames.push(name);
-        return name;
-    }
+function getCityName() {
+    const available = CITY_NAMES.filter(n => !usedNames.includes(n));
+    if (available.length === 0) return `Settlement ${cityIdCounter}`;
+    const name = available[Math.floor(Math.random() * available.length)];
+    usedNames.push(name);
+    return name;
+}
 
-    function getConnectedCities(cityId) {
-        const connected = new Set();
-        game.roads.forEach(road => {
-            if (road.from === cityId) connected.add(road.to);
-            if (road.to === cityId) connected.add(road.from);
-        });
-        return Array.from(connected).map(id => game.cities.find(c => c.id === id)).filter(Boolean);
-    }
+function getConnectedCities(cityId) {
+    const connected = new Set();
+    game.roads.forEach(road => {
+        if (road.from === cityId) connected.add(road.to);
+        if (road.to === cityId) connected.add(road.from);
+    });
+    return Array.from(connected).map(id => game.cities.find(c => c.id === id)).filter(Boolean);
+}
 
-    function getRoadBonus(city) {
-        const connections = getConnectedCities(city.id).length;
-        if (connections === 0) return 0;
-        if (connections === 1) return 0.2;
-        if (connections === 2) return 0.35;
-        return 0.5;
-    }
+function getRoadBonus(city) {
+    const connections = getConnectedCities(city.id).length;
+    if (connections === 0) return 0;
+    if (connections === 1) return 0.2;
+    if (connections === 2) return 0.35;
+    return 0.5;
+}
+
+function getNeighboringCityBonus(city) {
+    const connectedCount = getConnectedCities(city.id).length;
+
+    if (connectedCount >= 5) return 10;
+    if (connectedCount >= 4) return 7;
+    if (connectedCount >= 3) return 5;
+    if (connectedCount >= 2) return 3;
+    return 0;
+}
 
 function getCityFeatureBonus(city) {
     let foodBonus = 0;
@@ -755,7 +832,22 @@ function selectCity(city) {
     const roadBonus = getRoadBonus(city);
     const featureBonus = getCityFeatureBonus(city);
     const connectedCities = getConnectedCities(city.id);
+    const neighborBonus = getNeighboringCityBonus(city);
 
+    let connectionsText = '';
+    if (connectedCities.length > 0) {
+        connectionsText = `<div style="background: rgba(0,255,0,0.05); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 10px; margin-bottom: 5px;"><strong>Road Network</strong></p>
+            <p style="font-size: 9px;">Connected to: ${connectedCities.map(c => c.name).join(', ')}</p>
+            ${neighborBonus > 0 ?
+                `<p style="font-size: 9px; color: #4CAF50; margin-top: 3px;"><strong>Network Bonus: +${neighborBonus} happiness/yr</strong></p>` :
+                `<p style="font-size: 9px; color: #ffaa00; margin-top: 3px;">Connect to ${2 - connectedCities.length} more ${connectedCities.length === 1 ? 'city' : 'cities'} for bonus</p>`}
+        </div>`;
+    } else {
+        connectionsText = `<div style="background: rgba(255,170,0,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 9px; color: #ffaa00;">No road connections - build roads for bonuses!</p>
+        </div>`;
+    }
     const rebellionText = city.isRebel ? '<p style="color: #ff4400;"><strong>REBEL!</strong></p>' : '';
     const happinessColor = city.happiness > 60 ? '#4CAF50' : (city.happiness > 30 ? '#ffaa00' : '#ff4400');
 
@@ -772,6 +864,46 @@ function selectCity(city) {
         <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'trade')" ${!hasResources({food: 150, metal: 200, energy: 50}) ? 'disabled' : ''}>💰 Trade (150F, 200M, 50E)</button>
         <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="setSpecialization(${city.id}, 'research')" ${!hasResources({food: 200, metal: 150, energy: 250}) ? 'disabled' : ''}>🔬 Research (200F, 150M, 250E)</button>
     </div>` : '';
+
+    const entertainmentText = city.entertainmentDistricts && city.entertainmentDistricts.length > 0 ?
+        `<div style="background: rgba(156,39,176,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 10px; margin-bottom: 5px;"><strong>🎭 Entertainment</strong></p>
+            ${city.entertainmentDistricts.map(type => {
+                const dist = ENTERTAINMENT_DISTRICTS[type];
+                return `<p style="font-size: 9px;">• ${dist.icon} ${dist.name}: +${dist.happinessPerYear}/yr</p>`;
+            }).join('')}
+            <p style="font-size: 9px; font-weight: bold; margin-top: 3px;">Total: +${city.entertainmentDistricts.reduce((sum, type) => sum + ENTERTAINMENT_DISTRICTS[type].happinessPerYear, 0)}/yr</p>
+        </div>` : '';
+
+    const entertainmentButtons = !city.isRebel && city.entertainmentDistricts.length < 3 ?
+        `<div style="background: rgba(156,39,176,0.05); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 10px; margin-bottom: 5px;"><strong>Build Entertainment (${city.entertainmentDistricts.length}/3)</strong></p>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="buildEntertainmentDistrict(${city.id}, 'theater')" ${!hasResources({food: 100, metal: 150, energy: 50}) ? 'disabled' : ''}>🎭 Theater (100F, 150M, 50E)</button>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="buildEntertainmentDistrict(${city.id}, 'arena')" ${!hasResources({food: 150, metal: 200, energy: 75}) ? 'disabled' : ''}>🏟️ Arena (150F, 200M, 75E)</button>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="buildEntertainmentDistrict(${city.id}, 'garden')" ${!hasResources({food: 80, metal: 100, energy: 30}) ? 'disabled' : ''}>🌳 Garden (80F, 100M, 30E)</button>
+        </div>` : '';
+
+    const currentGovernor = city.governor || 'none';
+    const gov = GOVERNOR_TYPES[currentGovernor];
+
+    const governorText = currentGovernor !== 'none' ?
+        `<div style="background: rgba(100,150,255,0.1); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 10px; margin-bottom: 5px;"><strong>${gov.icon} ${gov.name}</strong></p>
+            <p style="font-size: 9px;">Happiness: ${gov.happinessPerYear > 0 ? '+' : ''}${gov.happinessPerYear}/yr</p>
+            <p style="font-size: 9px;">Resources: ${(gov.resourceMod * 100).toFixed(0)}%</p>
+            <p style="font-size: 9px;">Defense: ${(gov.defenseMod * 100).toFixed(0)}%</p>
+        </div>` : '';
+
+    const governorButtons = !city.isRebel ?
+        `<div style="background: rgba(100,150,255,0.05); padding: 8px; border-radius: 5px; margin: 8px 0;">
+            <p style="font-size: 10px; margin-bottom: 5px;"><strong>Assign Governor</strong></p>
+            ${currentGovernor !== 'none' ?
+                `<button class="action-btn" style="font-size: 9px; padding: 4px; margin-bottom: 5px;" onclick="assignGovernor(${city.id}, 'none')">Remove Current Governor</button>` : ''}
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="assignGovernor(${city.id}, 'benevolent')" ${currentGovernor !== 'none' || !hasResources({food: 200, metal: 100, energy: 50}) ? 'disabled' : ''}>😊 Benevolent (200F, 100M, 50E)</button>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="assignGovernor(${city.id}, 'military')" ${currentGovernor !== 'none' || !hasResources({food: 150, metal: 150, energy: 75}) ? 'disabled' : ''}>⚔️ Military (150F, 150M, 75E)</button>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="assignGovernor(${city.id}, 'economist')" ${currentGovernor !== 'none' || !hasResources({food: 250, metal: 200, energy: 100}) ? 'disabled' : ''}>💰 Economist (250F, 200M, 100E)</button>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="assignGovernor(${city.id}, 'diplomat')" ${currentGovernor !== 'none' || !hasResources({food: 200, metal: 150, energy: 150}) ? 'disabled' : ''}>🤝 Diplomat (200F, 150M, 150E)</button>
+        </div>` : '';
 
     const upgradeCost = city.upgradeLevel === 0 ? {food: 100, metal: 150, energy: 50} : {food: 200, metal: 300, energy: 100};
     const upgradeBtn = city.upgradeLevel < 2 && !city.isRebel ?
@@ -801,11 +933,6 @@ function selectCity(city) {
 
         updateAttackersList();
         return;
-    }
-
-    let connectionsText = '';
-    if (connectedCities.length > 0) {
-        connectionsText = `<p style="font-size: 9px;"><strong>Connected:</strong> ${connectedCities.map(c => c.name).join(', ')}</p>`;
     }
 
     let featureText = '';
@@ -840,7 +967,8 @@ function selectCity(city) {
         stationedUnitsText += `<p style="font-size: 9px; margin-top: 4px; color: #ff4400;">Military Oppression: -${penalty} happiness/yr</p>`;
     }
 
-panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${foodText}${specButtons}${upgradeBtn}${migrateBtn}`;    panel.style.display = 'block';
+    panel.innerHTML = `<h3>${city.name}</h3>${upgradeText}<div class="happiness-bar"><div class="happiness-fill" style="width: ${city.happiness}%; background: ${happinessColor};"></div><div class="happiness-text">${Math.floor(city.happiness)}</div></div><p><strong>Population:</strong> ${Math.floor(city.population)}/${city.maxPopulation}</p>${rebellionText}<p><strong>Status:</strong> ${inZone ? '✓ In Zone' : '⚠ Outside!'}</p><p><strong>Road Bonus:</strong> +${(roadBonus * 100).toFixed(0)}%</p>${featureText}${connectionsText}${stationedUnitsText}${foodText}${entertainmentText}${entertainmentButtons}${governorText}${governorButtons}${emergencyReliefText}${emergencyReliefButton}${specText}${specButtons}${upgradeBtn}${migrateBtn}`;
+
     document.getElementById('build-road-btn').disabled = false;
 }
 
@@ -866,6 +994,86 @@ function setSpecialization(cityId, specType) {
     }
 
     addMessage(`${city.name} specialized as ${spec.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+    selectCity(city);
+}
+
+function buildEntertainmentDistrict(cityId, districtType) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    const district = ENTERTAINMENT_DISTRICTS[districtType];
+    if (!hasResources(district.cost)) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
+
+    if (city.entertainmentDistricts.length >= 3) {
+        addMessage('Maximum 3 entertainment districts per city!', 'warning');
+        return;
+    }
+
+    spendResources(district.cost);
+    city.entertainmentDistricts.push(districtType);
+
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (cityEl) {
+        const oldBuildings = cityEl.querySelector('.city-buildings');
+        if (oldBuildings) oldBuildings.remove();
+        generateCityBuildings(cityEl, city);
+    }
+
+    addMessage(`Built ${district.name} in ${city.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+    selectCity(city);
+}
+
+function assignGovernor(cityId, governorType) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    const governor = GOVERNOR_TYPES[governorType];
+
+    if (city.governor !== 'none' && governorType !== 'none') {
+        addMessage('Replace current governor first!', 'warning');
+        return;
+    }
+
+    if (governorType !== 'none' && !hasResources(governor.cost)) {
+        addMessage('Not enough resources!', 'warning');
+        return;
+    }
+
+    if (governorType !== 'none') {
+        spendResources(governor.cost);
+    }
+
+    city.governor = governorType;
+
+    addMessage(`${governor.name} assigned to ${city.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+    selectCity(city);
+}
+
+function buildEmergencyRelief(cityId) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    if (city.hasEmergencyRelief) {
+        addMessage('Emergency relief already built!', 'warning');
+        return;
+    }
+
+    const cost = { food: 0, metal: 200, energy: 150 };
+    if (!hasResources(cost)) {
+        addMessage('Not enough resources for emergency relief!', 'warning');
+        return;
+    }
+
+    spendResources(cost);
+    city.hasEmergencyRelief = true;
+
+    addMessage(`Emergency shelters built in ${city.name}!`, 'success');
     AudioManager.playSFX('sfx-success', 0.6);
     selectCity(city);
 }
@@ -1092,7 +1300,10 @@ const startingCity = {
     specialization: 'none',
     foodStockpile: 50,
     foodConsumptionRate: 0,
-    autoFeed: true
+    autoFeed: true,
+    entertainmentDistricts: [],
+    governor: 'none',
+    hasEmergencyRelief: false
 };
 
 game.cities.push(startingCity);
@@ -1265,7 +1476,25 @@ function update() {
         const lawHappinessChange = lawEffect.happinessPenalty * 0.01;
         city.happiness += lawHappinessChange;
 
-        city.happiness = Math.max(0, Math.min(100, city.happiness));
+        if (city.entertainmentDistricts && city.entertainmentDistricts.length > 0) {
+            const entertainmentBonus = city.entertainmentDistricts.reduce((sum, districtType) => {
+                return sum + ENTERTAINMENT_DISTRICTS[districtType].happinessPerYear;
+            }, 0) * 0.01;
+            city.happiness += entertainmentBonus;
+        }
+
+        if (city.governor && city.governor !== 'none') {
+            const governorHappiness = GOVERNOR_TYPES[city.governor].happinessPerYear * 0.01;
+            city.happiness += governorHappiness;
+        }
+
+        const neighborBonus = getNeighboringCityBonus(city) * 0.01;
+        if (neighborBonus > 0) {
+            city.happiness += neighborBonus;
+        }
+
+        const happinessFloor = city.hasEmergencyRelief ? 15 : 0;
+        city.happiness = Math.max(happinessFloor, Math.min(100, city.happiness));
 
         if (city.happiness <= 0 && !city.isRebel && city.conquestRebellionTimer === 0) {
             city.isRebel = true;
@@ -1302,12 +1531,13 @@ function update() {
             const popProductionBonus = 0.5 + (popRatio * 0.5);
 
             const baseRes = 0.1;
+            const baseProduction = baseRes;
             const conversionPenalty = city.isConverted ? 0.7 : 1.0;
             const lawBonus = 1 + lawEffect.resourceBonus;
             const tradeBonus = city.tradeBoost > 0 ? 1.2 : 1.0;
             const specBonus = 1 + CITY_SPECIALIZATIONS[city.specialization].resourceBonus;
-            const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus;
-            const baseProduction = baseRes;
+            const governorBonus = city.governor && city.governor !== 'none' ? GOVERNOR_TYPES[city.governor].resourceMod : 1.0;
+            const totalProductionMod = (1 + roadBonus) * conversionPenalty * lawBonus * tradeBonus * popProductionBonus * specBonus * governorBonus;
 
             if (city.specialization === 'trade') {
                 const foodProd = (baseProduction + (featureBonus.foodBonus * 0.01)) * totalProductionMod * 0.4;
@@ -1713,6 +1943,19 @@ function updateCityInfoOnly(city) {
     }
 
     const inZone = isCityInHabitableZone(city);
+    const emergencyReliefText = city.hasEmergencyRelief ?
+        `<div style="background: rgba(76,175,80,0.15); padding: 8px; border-radius: 5px; margin: 8px 0; border: 2px solid rgba(76,175,80,0.5);">
+            <p style="font-size: 10px; color: #4CAF50;"><strong>🏥 Emergency Relief Active</strong></p>
+            <p style="font-size: 9px;">Shelters prevent happiness from dropping below 15</p>
+            <p style="font-size: 9px;">Citizens protected during evacuations</p>
+        </div>` : '';
+
+    const emergencyReliefButton = !city.isRebel && !city.hasEmergencyRelief && !inZone ?
+        `<div style="background: rgba(255,68,0,0.1); padding: 8px; border-radius: 5px; margin: 8px 0; border: 2px solid rgba(255,68,0,0.5);">
+            <p style="font-size: 10px; color: #ff4400; margin-bottom: 5px;"><strong>⚠️ City Outside Safe Zone!</strong></p>
+            <p style="font-size: 9px; margin-bottom: 5px;">Build emergency shelters to prevent panic</p>
+            <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="buildEmergencyRelief(${city.id})" ${!hasResources({food: 0, metal: 200, energy: 150}) ? 'disabled' : ''}>🏥 Build Emergency Relief (200M, 150E)</button>
+        </div>` : '';
     const statusElements = document.querySelectorAll('#info-panel p');
     statusElements.forEach(el => {
         if (el.innerHTML.includes('<strong>Population:</strong>')) {
@@ -2245,7 +2488,10 @@ function createCity(x, y) {
         specialization: 'none',
         foodStockpile: 50,
         foodConsumptionRate: 0,
-        autoFeed: true
+        autoFeed: true,
+        entertainmentDistricts: [],
+        governor: 'none',
+        hasEmergencyRelief: false
     };
 
 
@@ -2295,102 +2541,153 @@ document.getElementById('planet-view').appendChild(cityEl);
 
 
 function generateCityBuildings(cityEl, city) {
-const buildingsContainer = document.createElement('div');
-buildingsContainer.className = 'city-buildings';
+    const buildingsContainer = document.createElement('div');
+    buildingsContainer.className = 'city-buildings';
 
-const buildings = [];
-const baseCount = 5;
-const specCount = city.specialization === 'none' ? 0 : 3;
-const upgradeCount = city.upgradeLevel * 2;
-const totalBuildings = baseCount + specCount + upgradeCount;
+    const buildings = [];
+    const baseCount = 5;
+    const specCount = city.specialization === 'none' ? 0 : 3;
+    const upgradeCount = city.upgradeLevel * 2;
+    const entertainmentCount = city.entertainmentDistricts ? city.entertainmentDistricts.length : 0;
+    const totalBuildings = baseCount + specCount + upgradeCount + entertainmentCount;
 
-for (let i = 0; i < totalBuildings; i++) {
-    const building = document.createElement('div');
-    building.className = 'building';
+    for (let i = 0; i < totalBuildings; i++) {
+        const building = document.createElement('div');
+        building.className = 'building';
 
-    const angle = (i / totalBuildings) * Math.PI * 2;
-    const radius = 12 + Math.random() * 8;
-    const x = Math.cos(angle) * radius;
-    const y = Math.sin(angle) * radius;
+        const angle = (i / totalBuildings) * Math.PI * 2;
+        const radius = 12 + Math.random() * 8;
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
 
-    const width = 4 + Math.random() * 4;
-    const height = 6 + Math.random() * 8;
+        const width = 4 + Math.random() * 4;
+        const height = 6 + Math.random() * 8;
 
-    building.style.width = `${width}px`;
-    building.style.height = `${height}px`;
-    building.style.left = `${20 + x}px`;
-    building.style.top = `${20 + y}px`;
+        building.style.width = `${width}px`;
+        building.style.height = `${height}px`;
+        building.style.left = `${20 + x}px`;
+        building.style.top = `${20 + y}px`;
 
-    if (city.specialization === 'military') {
-        if (i % 3 === 0) {
-            building.style.height = `${height * 1.3}px`;
-            building.style.borderTop = '3px solid #8B0000';
+        if (city.entertainmentDistricts && i >= totalBuildings - entertainmentCount) {
+            const districtIndex = i - (totalBuildings - entertainmentCount);
+            const districtType = city.entertainmentDistricts[districtIndex];
+
+            if (districtType === 'theater') {
+                building.style.background = 'linear-gradient(to bottom, #9C27B0, #7B1FA2)';
+                building.style.borderRadius = '50% 50% 0 0';
+                building.style.height = `${height * 1.2}px`;
+            } else if (districtType === 'arena') {
+                building.style.background = 'linear-gradient(to bottom, #FF5722, #E64A19)';
+                building.style.borderRadius = '10px';
+                building.style.border = '2px solid #BF360C';
+            } else if (districtType === 'garden') {
+                building.style.background = 'linear-gradient(to bottom, #4CAF50, #388E3C)';
+                building.style.borderRadius = '50%';
+                building.style.width = `${width * 1.3}px`;
+            }
         }
-    } else if (city.specialization === 'trade') {
-        building.style.background = 'linear-gradient(to bottom, #DAA520, #B8860B)';
-        if (i % 4 === 0) {
-            building.style.borderTop = '2px solid #FFD700';
+
+        if (city.hasEmergencyRelief) {
+            const shelter = document.createElement('div');
+            shelter.className = 'emergency-shelter';
+            shelter.style.position = 'absolute';
+            shelter.style.width = '8px';
+            shelter.style.height = '8px';
+            shelter.style.background = 'linear-gradient(135deg, #4CAF50, #2E7D32)';
+            shelter.style.border = '2px solid #1B5E20';
+            shelter.style.borderRadius = '3px';
+            shelter.style.left = '-10px';
+            shelter.style.bottom = '-10px';
+            shelter.style.boxShadow = '0 0 8px rgba(76, 175, 80, 0.8)';
+            buildingsContainer.appendChild(shelter);
         }
-    } else if (city.specialization === 'research') {
-        building.style.background = 'linear-gradient(to bottom, #4169E1, #1E90FF)';
-        if (i % 3 === 0) {
-            building.style.height = `${height * 1.2}px`;
-            building.style.boxShadow = '0 0 5px rgba(65, 105, 225, 0.8)';
+
+        const connections = getConnectedCities(city.id).length;
+        if (connections >= 3) {
+            const beacon = document.createElement('div');
+            beacon.className = 'network-beacon';
+            beacon.style.position = 'absolute';
+            beacon.style.width = '6px';
+            beacon.style.height = '6px';
+            beacon.style.background = 'radial-gradient(circle, #00ff00, #00ff88)';
+            beacon.style.borderRadius = '50%';
+            beacon.style.top = '-12px';
+            beacon.style.right = '-8px';
+            beacon.style.boxShadow = '0 0 12px rgba(0, 255, 0, 1)';
+            beacon.style.animation = 'networkPulse 2s infinite';
+            buildingsContainer.appendChild(beacon);
+        }
+
+        if (city.specialization === 'military') {
+            if (i % 3 === 0) {
+                building.style.height = `${height * 1.3}px`;
+                building.style.borderTop = '3px solid #8B0000';
+            }
+        } else if (city.specialization === 'trade') {
+            building.style.background = 'linear-gradient(to bottom, #DAA520, #B8860B)';
+            if (i % 4 === 0) {
+                building.style.borderTop = '2px solid #FFD700';
+            }
+        } else if (city.specialization === 'research') {
+            building.style.background = 'linear-gradient(to bottom, #4169E1, #1E90FF)';
+            if (i % 3 === 0) {
+                building.style.height = `${height * 1.2}px`;
+                building.style.boxShadow = '0 0 5px rgba(65, 105, 225, 0.8)';
+            }
+        }
+
+        buildingsContainer.appendChild(building);
+    }
+
+    if (city.upgradeLevel > 0) {
+        const walls = document.createElement('div');
+        walls.className = 'city-walls';
+
+        const positions = [
+            { left: '-5px', top: '-5px' },
+            { right: '-5px', top: '-5px' },
+            { left: '-5px', bottom: '-5px' },
+            { right: '-5px', bottom: '-5px' }
+        ];
+
+        positions.forEach(pos => {
+            const tower = document.createElement('div');
+            tower.className = 'city-tower';
+            Object.assign(tower.style, pos);
+            walls.appendChild(tower);
+        });
+
+        buildingsContainer.appendChild(walls);
+    }
+
+    if (city.specialization !== 'none') {
+        const icon = document.createElement('div');
+        icon.className = 'specialization-icon';
+        const icons = {
+            military: '⚔️',
+            trade: '💰',
+            research: '🔬'
+        };
+        icon.textContent = icons[city.specialization];
+        buildingsContainer.appendChild(icon);
+    }
+
+    if (city.specialization === 'trade' || city.specialization === 'research') {
+        for (let i = 0; i < 3; i++) {
+            const smoke = document.createElement('div');
+            smoke.className = 'city-smoke';
+            smoke.style.left = `${15 + Math.random() * 10}px`;
+            smoke.style.top = `${10 + Math.random() * 10}px`;
+            smoke.style.animationDelay = `${i * 1}s`;
+            buildingsContainer.appendChild(smoke);
         }
     }
 
-    buildingsContainer.appendChild(building);
-}
+    const glow = document.createElement('div');
+    glow.className = 'city-glow';
+    buildingsContainer.appendChild(glow);
 
-if (city.upgradeLevel > 0) {
-    const walls = document.createElement('div');
-    walls.className = 'city-walls';
-
-    const positions = [
-        { left: '-5px', top: '-5px' },
-        { right: '-5px', top: '-5px' },
-        { left: '-5px', bottom: '-5px' },
-        { right: '-5px', bottom: '-5px' }
-    ];
-
-    positions.forEach(pos => {
-        const tower = document.createElement('div');
-        tower.className = 'city-tower';
-        Object.assign(tower.style, pos);
-        walls.appendChild(tower);
-    });
-
-    buildingsContainer.appendChild(walls);
-}
-
-if (city.specialization !== 'none') {
-    const icon = document.createElement('div');
-    icon.className = 'specialization-icon';
-    const icons = {
-        military: '⚔️',
-        trade: '💰',
-        research: '🔬'
-    };
-    icon.textContent = icons[city.specialization];
-    buildingsContainer.appendChild(icon);
-}
-
-if (city.specialization === 'trade' || city.specialization === 'research') {
-    for (let i = 0; i < 3; i++) {
-        const smoke = document.createElement('div');
-        smoke.className = 'city-smoke';
-        smoke.style.left = `${15 + Math.random() * 10}px`;
-        smoke.style.top = `${10 + Math.random() * 10}px`;
-        smoke.style.animationDelay = `${i * 1}s`;
-        buildingsContainer.appendChild(smoke);
-    }
-}
-
-const glow = document.createElement('div');
-glow.className = 'city-glow';
-buildingsContainer.appendChild(glow);
-
-cityEl.insertBefore(buildingsContainer, cityEl.firstChild);
+    cityEl.insertBefore(buildingsContainer, cityEl.firstChild);
 }
 
 
@@ -2544,7 +2841,8 @@ attackersInRange.forEach((attacker, index) => {
         const cityAttack = target.stationedUnits.infantry * 5 + target.stationedUnits.cavalry * 12 + target.stationedUnits.artillery * 20;
         const cityDefense = (target.stationedUnits.infantry * 3 + target.stationedUnits.cavalry * 5 + target.stationedUnits.artillery * 2) + (target.population * 0.5) + (target.upgradeLevel * 50);
 
-        const damageToCity = Math.max(0, tribalAttack - cityDefense * 0.3);
+        const governorDefenseMod = target.governor && target.governor !== 'none' ? GOVERNOR_TYPES[target.governor].defenseMod : 1.0;
+        const damageToCity = Math.max(0, tribalAttack - (cityDefense * governorDefenseMod) * 0.3);
         const damageToTribals = Math.max(0, cityAttack - tribalDefense * 0.3);
 
         const tribalCasualties = Math.floor(damageToTribals / 15);
@@ -2817,6 +3115,16 @@ function createRoad(city1, city2) {
     const roadEl = document.createElement('div');
     roadEl.className = 'road';
     roadEl.id = `road-${road.id}`;
+
+    roadEl.onmouseenter = () => {
+        const c1Connections = getConnectedCities(city1.id).length;
+        const c2Connections = getConnectedCities(city2.id).length;
+        const c1Bonus = getNeighboringCityBonus(city1);
+        const c2Bonus = getNeighboringCityBonus(city2);
+
+        roadEl.title = `${city1.name} (${c1Connections} connections, +${c1Bonus} happiness/yr) ↔ ${city2.name} (${c2Connections} connections, +${c2Bonus} happiness/yr)`;
+    };
+
     document.getElementById('planet-view').appendChild(roadEl);
 
     setTimeout(() => {
@@ -3582,12 +3890,13 @@ function endEnhancedDDRBattle() {
         playerAttack *= 1.15;
     }
 
-    let playerDefense = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.defense +
-                        closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.defense +
-                        closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.defense);
+    let playerDefense = (closestCity.stationedUnits.infantry * 3 + closestCity.stationedUnits.cavalry * 5 + closestCity.stationedUnits.artillery * 2) + (closestCity.population * 0.5) + (closestCity.upgradeLevel * 50);
 
     playerDefense *= formation.defMod;
     playerDefense *= (1 + TechTree.getTechBonus('defenseBonus'));
+
+    const governorDefenseMod = closestCity.governor && closestCity.governor !== 'none' ? GOVERNOR_TYPES[closestCity.governor].defenseMod : 1.0;
+    playerDefense *= governorDefenseMod;
 
     if (game.activePerks.includes('defensiveGenius')) {
         playerDefense *= 1.25;
