@@ -4221,23 +4221,26 @@ function updateTribalRoadPosition(roadEl, t1Id, t2Id) {
     if (!t1 || !t2) return;
 
     const planetView = document.getElementById('planet-view');
-    const planetWidth = planetView.offsetWidth;
-    const tribalOffset = (17.5 / planetWidth) * 100;
+    const rect = planetView.getBoundingClientRect();
+    const aspectRatio = rect.height / rect.width;
 
-    const x1 = t1.x + tribalOffset;
-    const y1 = t1.y + tribalOffset;
-    const x2 = t2.x + tribalOffset;
-    const y2 = t2.y + tribalOffset;
+    const tribalSize = 17.5;
+
+    const x1 = t1.x;
+    const y1 = t1.y;
+    const x2 = t2.x;
+    const y2 = t2.y * aspectRatio;
 
     const dx = x2 - x1;
-    const dy = y2 - y1;
+    const dy = y2 - (y1 * aspectRatio);
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
     roadEl.style.left = `${x1}%`;
     roadEl.style.top = `${y1}%`;
     roadEl.style.width = `${length}%`;
-    roadEl.style.transform = `rotate(${angle}deg)`;
+    roadEl.style.transform = `translate(${tribalSize}px, ${tribalSize}px) rotate(${angle}deg)`;
+    roadEl.style.transformOrigin = '0 0';
 }
 
 function updateAllTribalRoads() {
