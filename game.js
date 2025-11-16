@@ -1078,6 +1078,12 @@ function buildEntertainmentDistrict(cityId, districtType) {
     addMessage(`Built ${district.name} in ${city.name}!`, 'success');
     AudioManager.playSFX('sfx-success', 0.6);
     selectCity(city);
+
+    if (city.entertainmentDistricts.length === 1) {
+        setTimeout(() => {
+            createCityEntertainment(city);
+        }, 1000);
+    }
 }
 
 function assignGovernor(cityId, governorType) {
@@ -1407,10 +1413,29 @@ function startGame() {
     addMessage('Tribes will expand over time...', 'warning');
     updateHabitableZone();
 
+    setTimeout(() => {
+        game.cities.forEach(city => {
+            createCityWorkers(city);
+            if (city.entertainmentDistricts && city.entertainmentDistricts.length > 0) {
+                createCityEntertainment(city);
+            }
+        });
+    }, 3000);
+
     if (gameLoop) clearInterval(gameLoop);
     gameLoop = setInterval(update, 100);
 
     applyMapTransform();
+
+    setTimeout(() => {
+        game.roads.forEach(road => {
+            const roadEl = document.getElementById(`road-${road.id}`);
+            if (roadEl) {
+                createRoadTraffic(roadEl, road.id);
+            }
+        });
+    }, 2000);
+
     updateMinimap();
 }
 
@@ -1525,15 +1550,18 @@ function update() {
     }
 
     game.cities.forEach(city => {
-        if (city.conquestRebellionTimer > 0) {
-            city.conquestRebellionTimer--;
-            if (city.conquestRebellionTimer === 0 && city.isRebel) {
-                city.isRebel = false;
-                city.happiness = 50;
-                addMessage(`${city.name} is now loyal!`, 'success');
-                updateCityDisplay(city);
-            }
-            return;
+        if (city.conquestRebellionTimer === 0 && city.isRebel) {
+            city.isRebel = false;
+            city.happiness = 50;
+            addMessage(`${city.name} is now loyal!`, 'success');
+            updateCityDisplay(city);
+
+            setTimeout(() => {
+                createCityWorkers(city);
+                if (city.entertainmentDistricts && city.entertainmentDistricts.length > 0) {
+                    createCityEntertainment(city);
+                }
+            }, 2000);
         }
 
         if (city.isRebel) {
@@ -1592,6 +1620,20 @@ function update() {
             city.isRebel = true;
             addMessage(` ${city.name} has REBELLED due to zero happiness!`, 'danger');
             AudioManager.playSFX('sfx-alert', 0.7);
+
+            const cityEl = document.getElementById(`city-${city.id}`);
+            if (cityEl) {
+                cityEl.querySelectorAll('.city-visitor').forEach(visitor => visitor.remove());
+            }
+
+            document.querySelectorAll('.city-worker').forEach(worker => {
+                const workerX = parseFloat(worker.style.left);
+                const workerY = parseFloat(worker.style.top);
+                const dist = Math.sqrt(Math.pow(city.x - workerX, 2) + Math.pow(city.y - workerY, 2));
+                if (dist < CITY_FEATURE_RADIUS) {
+                    worker.remove();
+                }
+            });
         }
 
         if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
@@ -2661,6 +2703,10 @@ function createCity(x, y) {
     addMessage(`${city.name} founded!`, 'success');
     updateCityDisplay(city);
     updateBuildCityButtonText(0, 0);
+
+    setTimeout(() => {
+        createCityWorkers(city);
+    }, 2000);
 }
 
 function adjustBuildingPositions(buildings, centerX, centerY) {
@@ -3378,6 +3424,10 @@ function createRoad(city1, city2) {
         updateRoadPosition(roadEl, city1.id, city2.id);
     }, 0);
 
+    setTimeout(() => {
+        createRoadTraffic(roadEl, road.id);
+    }, 500);
+
     addMessage(`Road built: ${city1.name} ↔ ${city2.name}!`, 'success');
 }
 
@@ -3398,6 +3448,12 @@ function updateAllRoadStyles() {
         const roadEl = document.getElementById(`road-${road.id}`);
         if (roadEl) {
             roadEl.className = `road ${styleClass}`;
+
+            roadEl.querySelectorAll('.traffic-unit').forEach(unit => unit.remove());
+
+            setTimeout(() => {
+                createRoadTraffic(roadEl, road.id);
+            }, 100);
         }
     });
 }
@@ -4084,6 +4140,269 @@ function startBattleLoop(state) {
     }, 100);
 
     state.battleInterval = battleInterval;
+}
+
+function createRoadTraffic(roadEl, roadId) {
+    const road = game.roads.find(r => r.id === roadId);
+    if (!road) return;
+
+    const hasDirtRoads = TechTree.unlockedTechs.includes('dirtRoads');
+    const hasPavedRoads = TechTree.unlockedTechs.includes('pavedRoads');
+    const hasHighways = TechTree.unlockedTechs.includes('highways');
+
+    let trafficType = 'none';
+    if (hasHighways) trafficType = 'highway';
+    else if (hasPavedRoads) trafficType = 'paved';
+    else if (hasDirtRoads) trafficType = 'dirt';
+
+    if (trafficType === 'none') return;
+
+    roadEl.querySelectorAll('.traffic-unit').forEach(unit => unit.remove());
+
+    const trafficCount = trafficType === 'highway' ? 3 : (trafficType === 'paved' ? 2 : 2);
+
+    for (let i = 0; i < trafficCount; i++) {
+        const forwardDelay = Math.random() * 5000 + i * 3000;
+        const backwardDelay = Math.random() * 5000 + i * 3000 + 1500;
+
+        setTimeout(() => {
+            createTrafficUnit(roadEl, trafficType, true);
+        }, forwardDelay);
+
+        setTimeout(() => {
+            createTrafficUnit(roadEl, trafficType, false);
+        }, backwardDelay);
+    }
+}
+
+function createTrafficUnit(roadEl, type, forward) {
+    const unit = document.createElement('div');
+    unit.className = `traffic-unit traffic-${type}`;
+
+    if (type === 'dirt') {
+        unit.textContent = Math.random() > 0.5 ? '🚶' : '🚶‍♀️';
+        unit.style.fontSize = '8px';
+    } else if (type === 'paved') {
+        unit.textContent = Math.random() > 0.5 ? '🚗' : '🚙';
+        unit.style.fontSize = '10px';
+    } else if (type === 'highway') {
+        const vehicles = ['🚗', '🚙', '🚚', '🚛'];
+        unit.textContent = vehicles[Math.floor(Math.random() * vehicles.length)];
+        unit.style.fontSize = '12px';
+    }
+
+    const laneOffset = forward ? -1 : 1;
+    unit.style.top = `${laneOffset}px`;
+    unit.style.transform = `translateY(-50%) ${forward ? 'scaleX(-1)' : ''}`;
+
+    const startPos = forward ? 0 : 100;
+    const endPos = forward ? 100 : 0;
+    unit.style.left = `${startPos}%`;
+
+    roadEl.appendChild(unit);
+
+    const baseSpeed = type === 'highway' ? 6000 : (type === 'paved' ? 10000 : 15000);
+    const duration = baseSpeed + Math.random() * 3000;
+
+    setTimeout(() => {
+        unit.style.transition = `left ${duration}ms linear`;
+        unit.style.left = `${endPos}%`;
+    }, 50);
+
+    setTimeout(() => {
+        if (unit.parentElement) {
+            unit.remove();
+            createTrafficUnit(roadEl, type, forward);
+        }
+    }, duration + 100);
+}
+
+function createCityWorkers(city) {
+    if (!city || city.isRebel) return;
+
+    const popFactor = Math.min(city.population / city.maxPopulation, 1);
+    const workerCount = Math.floor(1 + popFactor * 4);
+
+    const nearbyFeatures = [];
+    game.features.forEach(feature => {
+        const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
+        if (dist < CITY_FEATURE_RADIUS) {
+            nearbyFeatures.push(feature);
+        }
+    });
+
+    if (nearbyFeatures.length === 0) return;
+
+    for (let i = 0; i < workerCount; i++) {
+        const delay = Math.random() * 10000 + i * 3000;
+        setTimeout(() => {
+            if (game.running && !city.isRebel) {
+                spawnWorker(city, nearbyFeatures);
+            }
+        }, delay);
+    }
+}
+
+function createCityEntertainment(city) {
+    if (!city || city.isRebel || !city.entertainmentDistricts || city.entertainmentDistricts.length === 0) return;
+
+    const popFactor = Math.min(city.population / city.maxPopulation, 1);
+    const visitorCount = Math.floor(1 + popFactor * city.entertainmentDistricts.length * 2);
+
+    for (let i = 0; i < visitorCount; i++) {
+        const delay = Math.random() * 8000 + i * 2000;
+        setTimeout(() => {
+            if (game.running && !city.isRebel) {
+                spawnVisitor(city);
+            }
+        }, delay);
+    }
+}
+
+function spawnVisitor(city) {
+    if (!game.running || city.isRebel || !city.entertainmentDistricts || city.entertainmentDistricts.length === 0) return;
+
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (!cityEl) return;
+
+    const buildings = cityEl.querySelectorAll('.building-hut, .building-house, .building-skyscraper');
+    const entertainmentBuildings = cityEl.querySelectorAll('.entertainment-building');
+
+    if (buildings.length === 0 || entertainmentBuildings.length === 0) return;
+
+    const startBuilding = buildings[Math.floor(Math.random() * buildings.length)];
+    const targetEntertainment = entertainmentBuildings[Math.floor(Math.random() * entertainmentBuildings.length)];
+
+    const visitor = document.createElement('div');
+    visitor.className = 'city-visitor';
+
+    let visitorTypes = ['🚶', '🚶‍♀️', '🚶‍♂️', '👨', '👩', '🧑'];
+
+    if (targetEntertainment.classList.contains('entertainment-theater')) {
+        visitorTypes = ['🎭', '🎪', '👨', '👩', '🧑'];
+    } else if (targetEntertainment.classList.contains('entertainment-arena')) {
+        visitorTypes = ['⚽', '🏃', '🤾', '👨', '👩'];
+    } else if (targetEntertainment.classList.contains('entertainment-garden')) {
+        visitorTypes = ['🌸', '🦋', '👨', '👩', '👧', '👦'];
+    }
+
+    visitor.textContent = visitorTypes[Math.floor(Math.random() * visitorTypes.length)];
+    visitor.style.fontSize = '10px';
+
+    const startRect = startBuilding.getBoundingClientRect();
+    const cityRect = cityEl.getBoundingClientRect();
+
+    const startX = ((startRect.left + startRect.width / 2) - cityRect.left) / cityRect.width * 100;
+    const startY = ((startRect.top + startRect.height / 2) - cityRect.top) / cityRect.height * 100;
+
+    visitor.style.left = `${startX}%`;
+    visitor.style.top = `${startY}%`;
+
+    cityEl.appendChild(visitor);
+
+    const targetRect = targetEntertainment.getBoundingClientRect();
+    const targetX = ((targetRect.left + targetRect.width / 2) - cityRect.left) / cityRect.width * 100;
+    const targetY = ((targetRect.top + targetRect.height / 2) - cityRect.top) / cityRect.height * 100;
+
+    const distance = Math.sqrt(Math.pow(targetX - startX, 2) + Math.pow(targetY - startY, 2));
+    const travelTime = Math.max(1500, distance * 50);
+
+    setTimeout(() => {
+        visitor.style.transition = `left ${travelTime}ms linear, top ${travelTime}ms linear`;
+        visitor.style.left = `${targetX}%`;
+        visitor.style.top = `${targetY}%`;
+    }, 50);
+
+    setTimeout(() => {
+        visitor.classList.add('enjoying');
+    }, travelTime + 100);
+
+    const enjoyTime = 3000 + Math.random() * 4000;
+
+    setTimeout(() => {
+        visitor.classList.remove('enjoying');
+        visitor.style.transition = `left ${travelTime}ms linear, top ${travelTime}ms linear`;
+        visitor.style.left = `${startX}%`;
+        visitor.style.top = `${startY}%`;
+    }, travelTime + enjoyTime);
+
+    setTimeout(() => {
+        visitor.remove();
+
+        if (game.running && !city.isRebel && city.entertainmentDistricts && city.entertainmentDistricts.length > 0) {
+            const respawnDelay = 8000 + Math.random() * 7000;
+            setTimeout(() => {
+                if (game.running && !city.isRebel) {
+                    spawnVisitor(city);
+                }
+            }, respawnDelay);
+        }
+    }, travelTime * 2 + enjoyTime + 100);
+}
+
+function spawnWorker(city, nearbyFeatures) {
+    if (!game.running || city.isRebel) return;
+
+    const targetFeature = nearbyFeatures[Math.floor(Math.random() * nearbyFeatures.length)];
+
+    const worker = document.createElement('div');
+    worker.className = 'city-worker';
+
+    let workerTypes = ['🧑‍🌾', '👷', '👨‍🔧', '👩‍🔧'];
+
+    if (['oasis', 'lake', 'forest', 'grove', 'orchard', 'meadow', 'plains'].includes(targetFeature.type)) {
+        workerTypes = ['🧑‍🌾', '👨‍🌾', '👩‍🌾', '🧑‍🌾'];
+    } else if (['mine', 'quarry', 'canyon', 'volcano'].includes(targetFeature.type)) {
+        workerTypes = ['👷', '👷‍♂️', '👷‍♀️', '⛏️'];
+    } else if (['geothermal', 'crystalcave'].includes(targetFeature.type)) {
+        workerTypes = ['👨‍🔧', '👩‍🔧', '🔧', '⚡'];
+    }
+
+    worker.textContent = workerTypes[Math.floor(Math.random() * workerTypes.length)];
+
+    worker.style.left = `${city.x}%`;
+    worker.style.top = `${city.y}%`;
+    worker.style.fontSize = '12px';
+
+    document.getElementById('planet-view').appendChild(worker);
+
+    const distance = Math.sqrt(
+        Math.pow(targetFeature.x - city.x, 2) +
+        Math.pow(targetFeature.y - city.y, 2)
+    );
+    const travelTime = Math.max(3000, distance * 200);
+
+    setTimeout(() => {
+        worker.style.transition = `left ${travelTime}ms linear, top ${travelTime}ms linear`;
+        worker.style.left = `${targetFeature.x}%`;
+        worker.style.top = `${targetFeature.y}%`;
+    }, 50);
+
+    setTimeout(() => {
+        worker.classList.add('working');
+    }, travelTime + 100);
+
+    const workDuration = 5000 + Math.random() * 5000;
+
+    setTimeout(() => {
+        worker.classList.remove('working');
+        worker.style.transition = `left ${travelTime}ms linear, top ${travelTime}ms linear`;
+        worker.style.left = `${city.x}%`;
+        worker.style.top = `${city.y}%`;
+    }, travelTime + workDuration);
+
+    setTimeout(() => {
+        worker.remove();
+
+        if (game.running && !city.isRebel) {
+            const respawnDelay = 15000 + Math.random() * 10000;
+            setTimeout(() => {
+                if (game.running && !city.isRebel) {
+                    spawnWorker(city, nearbyFeatures);
+                }
+            }, respawnDelay);
+        }
+    }, travelTime * 2 + workDuration + 100);
 }
 
 function processBattleTick(state) {
@@ -4900,6 +5219,15 @@ function convertTribalCity(tribal) {
     updateCityDisplay(city);
 
     checkTribalDefeat();
+
+    setTimeout(() => {
+        if (!city.isRebel) {
+            createCityWorkers(city);
+            if (city.entertainmentDistricts && city.entertainmentDistricts.length > 0) {
+                createCityEntertainment(city);
+            }
+        }
+    }, 5000);
 }
 
 function calculateFoodNeeds(city) {
