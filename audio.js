@@ -8,21 +8,15 @@ const AudioManager = {
     currentTrackIndex: 0,
     isLooping: true,
     musicTracks: [
-        { name: 'Ambient Space 1', url: 'https://cdn.pixabay.com/audio/2022/03/10/audio_4c91a3f6c1.mp3' },
-        { name: 'Cosmic Journey', url: 'https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3' },
-        { name: 'Deep Space', url: 'https://cdn.pixabay.com/audio/2022/03/24/audio_3fb91eb9d4.mp3' },
-        { name: 'Stellar Winds', url: 'https://cdn.pixabay.com/audio/2023/08/11/audio_c8a8c7c6c0.mp3' },
-        { name: 'Nebula Dreams', url: 'https://cdn.pixabay.com/audio/2022/11/22/audio_bbc8e65321.mp3' },
-        { name: 'Galactic Horizon', url: 'https://cdn.pixabay.com/audio/2023/02/13/audio_41b96357c9.mp3' },
-        { name: 'Orbital Station', url: 'https://cdn.pixabay.com/audio/2022/08/02/audio_c8f7e1e8a6.mp3' },
-        { name: 'Solar Flare', url: 'https://cdn.pixabay.com/audio/2023/05/16/audio_dd23a8d5c8.mp3' },
-        { name: 'Asteroid Field', url: 'https://cdn.pixabay.com/audio/2022/09/29/audio_09f55e9f89.mp3' },
-        { name: 'Zero Gravity', url: 'https://cdn.pixabay.com/audio/2023/01/09/audio_98f0e0c629.mp3' },
-        { name: 'Warp Speed', url: 'https://cdn.pixabay.com/audio/2022/12/06/audio_f1e20a5cb7.mp3' },
-        { name: 'Planet Surface', url: 'https://cdn.pixabay.com/audio/2023/03/21/audio_8c61d5e6fb.mp3' },
-        { name: 'Lunar Base', url: 'https://cdn.pixabay.com/audio/2022/10/18/audio_2f5c2e5a8d.mp3' },
-        { name: 'Supernova', url: 'https://cdn.pixabay.com/audio/2023/04/14/audio_b2e9c4f7a3.mp3' },
-        { name: 'Interstellar', url: 'https://cdn.pixabay.com/audio/2022/07/25/audio_c7d8f6e2b1.mp3' }
+        { name: 'The Awakening', url: 'music/awaken.mp3' },
+        { name: 'New Beginnings', url: 'music/new.mp3' },
+        { name: 'Tesseract', url: 'music/tesseract.mp3' },
+        { name: 'Terraforming', url: 'music/terraforming.mp3' },
+        { name: 'First Contact', url: 'music/contact.mp3' },
+        { name: 'Solar Sail', url: 'music/solar_sail.mp3' },
+        { name: 'Galaxy', url: 'music/galaxy.mp3' },
+        { name: 'Aphelion', url: 'music/aphelion.mp3' },
+        { name: 'Lagrange Point', url: 'music/point.mp3' }
     ],
 
     init() {
@@ -41,6 +35,7 @@ const AudioManager = {
         });
 
         document.getElementById('music-btn').onclick = () => this.toggleMusicMenu();
+        document.getElementById('sfx-toggle-btn').onclick = () => this.toggleSFX();
         this.createMusicMenu();
     },
 
@@ -63,7 +58,17 @@ const AudioManager = {
         `;
 
         menu.innerHTML = `
-            <h3 style="color: #00ff00; margin-bottom: 10px; font-size: 14px;">Music Player</h3>
+            <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;">
+                <img id="album-cover" src="" alt="Album Cover" style="
+                    width: 100%;
+                    height: 250px;
+                    object-fit: cover;
+                    border: 2px solid #00ff00;
+                    margin-bottom: 10px;
+                    background: linear-gradient(135deg, #1a1a2e, #16213e);
+                ">
+                <h3 style="color: #00ff00; margin: 0; font-size: 14px;">Music Player</h3>
+            </div>
             <div style="margin-bottom: 15px;">
                 <button id="music-toggle-btn" style="width: 100%; margin-bottom: 5px;">Enable Music</button>
                 <label style="display: flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer;">
@@ -198,7 +203,39 @@ const AudioManager = {
             sfx.currentTime = 0;
             sfx.play().catch(e => console.log('SFX blocked'));
         }
+    },
+
+    toggleSFX() {
+        this.sfxEnabled = !this.sfxEnabled;
+        const btn = document.getElementById('sfx-toggle-btn');
+
+        if (this.sfxEnabled) {
+            btn.textContent = '🔊 SFX: ON';
+            btn.style.background = 'rgba(0, 255, 0, 0.2)';
+            btn.style.borderColor = '#00ff00';
+        } else {
+            btn.textContent = '🔇 SFX: OFF';
+            btn.style.background = 'rgba(255, 68, 0, 0.2)';
+            btn.style.borderColor = '#ff4400';
+        }
+
+        this.playSFX('sfx-button-click', 0.3);
+    },
+
+    setAlbumCover(imageUrl) {
+        const albumCover = document.getElementById('album-cover');
+        if (albumCover) {
+            if (imageUrl) {
+                albumCover.src = imageUrl;
+                albumCover.style.display = 'block';
+            } else {
+                albumCover.style.display = 'none';
+            }
+        }
     }
 };
 
-AudioManager.init();
+document.addEventListener('DOMContentLoaded', () => {
+    AudioManager.init();
+    AudioManager.setAlbumCover('images/cover.jpg');
+});

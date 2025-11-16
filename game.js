@@ -238,6 +238,7 @@ const game = {
     habitableZone: { left: 35, width: 30 }, zoneShiftSpeed: -0.5,
     selectedCity: null, selectedType: null, placingCity: false, buildingRoad: false, roadStartCity: null,
     messages: [], gatherCooldown: 0, spaceportProgress: 0, spaceportBuilding: false,
+    placingSpaceport: false, spaceportX: 0, spaceportY: 0,
     tribalReputation: 50, tribalRelation: 'neutral', hasEmbassy: false,
     tribalTradeCooldown: 0, activeLaw: 'none',
     tribalRoadTimer: 0, tribalCityTimer: 0,
@@ -770,7 +771,29 @@ function updateCityDisplay(city) {
     updateCityUnitIcons(city);
     const inZone = isCityInHabitableZone(city);
     const popPercent = (city.population / city.maxPopulation) * 100;
-    el.querySelector('.population-fill').style.width = `${popPercent}%`;
+
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (!cityEl) return;
+
+    let popBar = cityEl.querySelector('.population-bar');
+    if (!popBar) {
+        popBar = document.createElement('div');
+        popBar.className = 'population-bar';
+        cityEl.appendChild(popBar);
+    }
+
+    const barWidth = 20 + (city.maxPopulation / 10);
+    popBar.style.width = `${barWidth}px`;
+    popBar.style.left = '50%';
+    popBar.style.transform = 'translateX(-50%)';
+
+    let popFill = popBar.querySelector('.population-fill');
+    if (!popFill) {
+        popFill = document.createElement('div');
+        popFill.className = 'population-fill';
+        popBar.appendChild(popFill);
+    }
+    popFill.style.width = `${popPercent}%`;
 
     let className = `city city-${city.zoneType}`;
     if (city.isRebel) {
@@ -1290,7 +1313,7 @@ function startGame() {
         messages: [], selectedCity: null, spaceportProgress: 0, spaceportBuilding: false,
         spaceportYearStarted: 0,
         wonderLocations: [],
-        spaceportYearStarted: 0,
+        placingSpaceport: false, spaceportX: 0, spaceportY: 0,
         resources: { food: 500, metal: 400, energy: 250 }, year: 0,
         gatherCooldown: 0, tribalTradeCooldown: 0, tribalReputation: 50,
         tribalRelation: 'neutral', hasEmbassy: false, activeLaw: 'none',
@@ -1305,84 +1328,86 @@ function startGame() {
         attackingCities: [],
         selectingAttackers: false,
         targetTribal: null
-    }
-);
+    });
 
+    document.getElementById('planet-view').querySelectorAll('.city, .tribal-city, .road, .tribal-road, .army-arrow').forEach(el => el.remove());
+    document.getElementById('messages').innerHTML = '';
 
-document.getElementById('planet-view').querySelectorAll('.city, .tribal-city, .road, .tribal-road, .army-arrow').forEach(el => el.remove());
-document.getElementById('messages').innerHTML = '';
+    generateTerrainElements();
+    generateTribalCities();
 
-generateTerrainElements();
-generateTribalCities();
+    const startingCity = {
+        id: cityIdCounter++,
+        name: getCityName(),
+        position: 50,
+        x: 50,
+        y: 50,
+        population: 150,
+        maxPopulation: 500 + TechTree.getTechBonus('maxPopulation'),
+        warned: false,
+        zoneType: getZoneType(50),
+        isRebel: false,
+        isConverted: false,
+        upgradeLevel: 0,
+        happiness: 50,
+        conquestRebellionTimer: 0,
+        stationedUnits: { infantry: 0, cavalry: 0, artillery: 0 },
+        tradeBoost: 0,
+        specialization: 'none',
+        foodStockpile: 50,
+        foodConsumptionRate: 0,
+        autoFeed: true,
+        entertainmentDistricts: [],
+        governor: 'none',
+        hasEmergencyRelief: false
+    };
 
-const startingCity = {
-    id: cityIdCounter++,
-    name: getCityName(),
-    position: 50,
-    x: 50,
-    y: 50,
-    population: 150,
-    maxPopulation: 500 + TechTree.getTechBonus('maxPopulation'),
-    warned: false,
-    zoneType: getZoneType(50),
-    isRebel: false,
-    isConverted: false,
-    upgradeLevel: 0,
-    happiness: 50,
-    conquestRebellionTimer: 0,
-    stationedUnits: { infantry: 0, cavalry: 0, artillery: 0 },
-    tradeBoost: 0,
-    specialization: 'none',
-    foodStockpile: 50,
-    foodConsumptionRate: 0,
-    autoFeed: true,
-    entertainmentDistricts: [],
-    governor: 'none',
-    hasEmergencyRelief: false
-};
+    game.cities.push(startingCity);
 
-game.cities.push(startingCity);
+    const cityEl = document.createElement('div');
+    cityEl.className = `city city-${startingCity.zoneType}${startingCity.specialization !== 'none' ? ' city-' + startingCity.specialization : ''}`;
+    cityEl.id = `city-${startingCity.id}`;
+    cityEl.style.left = '50%';
+    cityEl.style.top = '50%';
+    cityEl.style.transform = 'translate(-50%, -50%)';
+    cityEl.innerHTML = `
+        <div class="city-label">${startingCity.name}</div>
+        <div class="city-center-marker"></div>
+        <div class="population-bar"></div>
+    `;
+    cityEl.onclick = (e) => {
+        e.stopPropagation();
+        if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
+            createRoad(game.roadStartCity, startingCity);
+            game.buildingRoad = false;
+            game.roadStartCity = null;
+            document.getElementById('build-road-btn').classList.remove('active');
+            updateRoadButtonText();
+        } else {
+            selectCity(startingCity);
+        }
+    };
 
-const cityEl = document.createElement('div');
-cityEl.className = `city city-${startingCity.zoneType}${startingCity.specialization !== 'none' ? ' city-' + startingCity.specialization : ''}`;
-cityEl.id = `city-${startingCity.id}`;
-cityEl.style.left = '50%';
-cityEl.style.top = '50%';
-cityEl.style.transform = 'translate(-50%, -50%)';
-cityEl.innerHTML = `<div class="city-label">${startingCity.name}</div><div class="city-icon"></div><div class="population-bar"><div class="population-fill" style="width: 30%"></div></div>`;
-cityEl.onclick = (e) => {
-    e.stopPropagation();
-    if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
-        createRoad(game.roadStartCity, startingCity);
-        game.buildingRoad = false;
-        game.roadStartCity = null;
-        document.getElementById('build-road-btn').classList.remove('active');
-        updateRoadButtonText();
-    } else {
-        selectCity(startingCity);
-    }
-};
+    cityEl.onmouseenter = (e) => {
+        if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
+            updateRoadButtonText(startingCity.x, startingCity.y);
+        }
+    };
 
-cityEl.onmouseenter = (e) => {
-    if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
-        updateRoadButtonText(startingCity.x, startingCity.y);
-    }
-};
+    cityEl.onmouseleave = (e) => {
+        if (game.buildingRoad && game.roadStartCity) {
+            updateRoadButtonText();
+        }
+    };
 
-cityEl.onmouseleave = (e) => {
-    if (game.buildingRoad && game.roadStartCity) {
-        updateRoadButtonText();
-    }
-};
+    generateCityBuildings(cityEl, startingCity);
+    document.getElementById('planet-view').appendChild(cityEl);
 
-generateCityBuildings(cityEl, startingCity);
-document.getElementById('planet-view').appendChild(cityEl);
+    addMessage('Build your first city in the habitable zone!', 'info');
+    addMessage('Tribes will expand over time...', 'warning');
+    updateHabitableZone();
 
-addMessage('Build your first city in the habitable zone!', 'info');
-addMessage('Tribes will expand over time...', 'warning');
-updateHabitableZone();
-
-if (gameLoop) clearInterval(gameLoop);
+    if (gameLoop) clearInterval(gameLoop);
     gameLoop = setInterval(update, 100);
 
     applyMapTransform();
@@ -1436,12 +1461,22 @@ function update() {
             addMessage('Spaceport construction HALTED! Population dropped below 3500!', 'danger');
             game.spaceportBuilding = false;
             game.spaceportProgress = 0;
+            const spaceportEl = document.getElementById('spaceport');
+            if (spaceportEl) spaceportEl.remove();
             AudioManager.playSFX('sfx-alert', 0.7);
         } else {
             const wonderBonus = WonderSystem.getWonderBonus('spaceport');
             const yearsElapsed = game.year - game.spaceportYearStarted;
             const effectiveTime = 10 / (1 + wonderBonus);
             game.spaceportProgress = Math.min(100, (yearsElapsed / effectiveTime) * 100);
+
+            const spaceportEl = document.getElementById('spaceport');
+            if (spaceportEl) {
+                const progressBar = spaceportEl.querySelector('.spaceport-progress-fill');
+                if (progressBar) {
+                    progressBar.style.width = `${game.spaceportProgress}%`;
+                }
+            }
 
             if (game.spaceportProgress >= 100) {
                 VictoryConditions.checkVictory();
@@ -1684,6 +1719,19 @@ function update() {
         }
 
         city.population = Math.max(0, Math.min(city.population, city.maxPopulation));
+
+        if (!city.lastPopulation) city.lastPopulation = city.population;
+        const popChange = Math.abs(city.population - city.lastPopulation);
+        if (popChange > city.maxPopulation * 0.05) {
+            const cityEl = document.getElementById(`city-${city.id}`);
+            if (cityEl) {
+                const oldBuildings = cityEl.querySelector('.city-buildings');
+                if (oldBuildings) oldBuildings.remove();
+                generateCityBuildings(cityEl, city);
+            }
+            city.lastPopulation = city.population;
+        }
+
         updateCityDisplay(city);
     });
 
@@ -2567,52 +2615,97 @@ function createCity(x, y) {
         governor: 'none',
         hasEmergencyRelief: false
     };
+    const activeTribals = game.tribalCities.filter(t => !t.isConverted);
+    activeTribals.forEach(tribal => {
+        const distance = Math.sqrt(Math.pow(x - tribal.x, 2) + Math.pow(y - tribal.y, 2));
+        if (distance < 10) {
+            game.tribalReputation = Math.max(0, game.tribalReputation - 10);
+            addMessage(`${tribal.name} angered by close settlement! (-10 rep)`, 'danger');
+            AudioManager.playSFX('sfx-alert', 0.6);
+        }
+    });
 
+    game.cities.push(city);
+    spendResources(cityCost);
+    console.log('RIGHT AFTER spendResources in createCity:', game.resources);
+    AudioManager.playSFX('sfx-city-build', 0.6);
 
-const activeTribals = game.tribalCities.filter(t => !t.isConverted);
-activeTribals.forEach(tribal => {
-    const distance = Math.sqrt(Math.pow(x - tribal.x, 2) + Math.pow(y - tribal.y, 2));
-    if (distance < 10) {
-        game.tribalReputation = Math.max(0, game.tribalReputation - 10);
-        addMessage(`${tribal.name} angered by close settlement! (-10 rep)`, 'danger');
-        AudioManager.playSFX('sfx-alert', 0.6);
-    }
-});
+    const cityEl = document.createElement('div');
+    cityEl.className = `city city-${city.zoneType}${city.specialization !== 'none' ? ' city-' + city.specialization : ''}`;
+    cityEl.id = `city-${city.id}`;
+    cityEl.style.left = `${x}%`;
+    cityEl.style.top = `${y}%`;
+    cityEl.style.transform = 'translate(-50%, -50%)';
+    cityEl.innerHTML = `
+        <div class="city-label">${city.name}</div>
+        <div class="city-center-marker"></div>
+        <div class="population-bar"></div>
+    `;
+    cityEl.onclick = (e) => {
+        e.stopPropagation();
+        if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== city.id) {
+            createRoad(game.roadStartCity, city);
+            game.buildingRoad = false;
+            game.roadStartCity = null;
+            document.getElementById('build-road-btn').classList.remove('active');
+        } else {
+            selectCity(city);
+        }
+    };
 
-game.cities.push(city);
-spendResources(cityCost);
-console.log('RIGHT AFTER spendResources in createCity:', game.resources);
-AudioManager.playSFX('sfx-city-build', 0.6);
+    generateCityBuildings(cityEl, city);
 
+    document.getElementById('planet-view').appendChild(cityEl);
 
-        const cityEl = document.createElement('div');
-        cityEl.className = `city city-${city.zoneType}${city.specialization !== 'none' ? ' city-' + city.specialization : ''}`;
-        cityEl.id = `city-${city.id}`;
-        cityEl.style.left = `${x}%`;
-        cityEl.style.top = `${y}%`;
-        cityEl.style.transform = 'translate(-50%, -50%)';
-        cityEl.innerHTML = `<div class="city-label">${city.name}</div><div class="population-bar"><div class="population-fill" style="width: 20%"></div></div>`;
-        cityEl.onclick = (e) => {
-e.stopPropagation();
-if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== city.id) {
-    createRoad(game.roadStartCity, city);
-    game.buildingRoad = false;
-    game.roadStartCity = null;
-    document.getElementById('build-road-btn').classList.remove('active');
-} else {
-    selectCity(city);
+    addMessage(`${city.name} founded!`, 'success');
+    updateCityDisplay(city);
+    updateBuildCityButtonText(0, 0);
 }
-};
 
-generateCityBuildings(cityEl, city);
+function adjustBuildingPositions(buildings, centerX, centerY) {
+    const positions = buildings.map(b => {
+        let radius = 6;
+        if (b.classList.contains('specialization-military-fort')) radius = 12;
+        if (b.classList.contains('specialization-trade-bank')) radius = 12;
+        if (b.classList.contains('specialization-research-library')) radius = 12;
+        if (b.classList.contains('entertainment-building')) radius = 8;
+        if (b.classList.contains('emergency-shelter-building')) radius = 7;
 
-document.getElementById('planet-view').appendChild(cityEl);
+        return {
+            element: b,
+            x: parseFloat(b.style.left) || centerX,
+            y: parseFloat(b.style.top) || centerY,
+            radius: radius
+        };
+    });
 
-        addMessage(`${city.name} founded!`, 'success');
-        updateCityDisplay(city);
-        updateBuildCityButtonText(0, 0);
+    const iterations = 20;
+    for (let iter = 0; iter < iterations; iter++) {
+        for (let i = 0; i < positions.length; i++) {
+            for (let j = i + 1; j < positions.length; j++) {
+                const dx = positions[j].x - positions[i].x;
+                const dy = positions[j].y - positions[i].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = positions[i].radius + positions[j].radius + 2;
+
+                if (dist < minDist && dist > 0) {
+                    const overlap = (minDist - dist) / 2;
+                    const angle = Math.atan2(dy, dx);
+
+                    positions[i].x -= Math.cos(angle) * overlap * 1.2;
+                    positions[i].y -= Math.sin(angle) * overlap * 1.2;
+                    positions[j].x += Math.cos(angle) * overlap * 1.2;
+                    positions[j].y += Math.sin(angle) * overlap * 1.2;
+                }
+            }
+        }
     }
 
+    positions.forEach(pos => {
+        pos.element.style.left = `${pos.x}px`;
+        pos.element.style.top = `${pos.y}px`;
+    });
+}
 
 function generateCityBuildings(cityEl, city) {
     const buildingsContainer = document.createElement('div');
@@ -2632,54 +2725,75 @@ function generateCityBuildings(cityEl, city) {
     const specialization = city.specialization || 'none';
     const entertainmentCount = city.entertainmentDistricts ? city.entertainmentDistricts.length : 0;
 
+    const popRatio = city.population / city.maxPopulation;
+    const baseBuildingCount = housingLevel === 0 ? 5 : (housingLevel === 1 ? 8 : (housingLevel === 2 ? 12 : 16));
+    const buildingCount = Math.max(2, Math.floor(baseBuildingCount * Math.pow(popRatio, 0.7)));
+
+    const maxRadius = 15 + (popRatio * 25) + (buildingCount * 1.5);
+    const minRadius = 8;
+
     if (housingLevel === 0) {
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < buildingCount; i++) {
             const hut = document.createElement('div');
             hut.className = 'building-hut';
-            const angle = (i / 5) * Math.PI * 2;
-            const radius = 10 + Math.random() * 3;
+            const angle = (i / buildingCount) * Math.PI * 2 + (Math.random() * 0.3);
+            const distanceFromCenter = i / buildingCount;
+            const radius = minRadius + (distanceFromCenter * (maxRadius - minRadius));
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
             hut.style.left = `${20 + x}px`;
             hut.style.top = `${20 + y}px`;
+            const scale = 1 - (distanceFromCenter * 0.3);
+            hut.style.transform = `translate(-50%, -50%) scale(${scale})`;
             buildingsContainer.appendChild(hut);
         }
     } else if (housingLevel === 1) {
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < buildingCount; i++) {
             const house = document.createElement('div');
             house.className = 'building-house';
-            const angle = (i / 8) * Math.PI * 2;
-            const radius = 12 + (i % 2) * 4;
+            const angle = (i / buildingCount) * Math.PI * 2 + (Math.random() * 0.2);
+            const distanceFromCenter = i / buildingCount;
+            const radius = minRadius + (distanceFromCenter * (maxRadius - minRadius));
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
             house.style.left = `${20 + x}px`;
             house.style.top = `${20 + y}px`;
+            const scale = 1 - (distanceFromCenter * 0.25);
+            house.style.transform = `translate(-50%, -50%) scale(${scale})`;
             buildingsContainer.appendChild(house);
         }
     } else if (housingLevel === 2) {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < buildingCount; i++) {
             const house = document.createElement('div');
             house.className = 'building-house';
-            const angle = (i / 10) * Math.PI * 2;
-            const radius = 12 + (i % 3) * 3;
+            const angle = (i / buildingCount) * Math.PI * 2 + (Math.random() * 0.15);
+            const distanceFromCenter = i / buildingCount;
+            const radius = minRadius + (distanceFromCenter * (maxRadius - minRadius));
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
             house.style.left = `${20 + x}px`;
             house.style.top = `${20 + y}px`;
+            const scale = 1 - (distanceFromCenter * 0.2);
+            house.style.transform = `translate(-50%, -50%) scale(${scale})`;
             buildingsContainer.appendChild(house);
         }
     } else {
-        for (let i = 0; i < 12; i++) {
+        for (let i = 0; i < buildingCount; i++) {
             const building = document.createElement('div');
             building.className = 'building-skyscraper';
-            const angle = (i / 12) * Math.PI * 2;
-            const radius = 10 + (i % 3) * 3;
-            const height = 8 + Math.random() * 8;
+            const angle = (i / buildingCount) * Math.PI * 2 + (Math.random() * 0.1);
+            const distanceFromCenter = i / buildingCount;
+            const radius = minRadius + (distanceFromCenter * (maxRadius - minRadius));
+            const baseHeight = 8 + Math.random() * 8;
+            const heightScale = 1 - (distanceFromCenter * 0.4);
+            const height = baseHeight * heightScale;
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
             building.style.left = `${20 + x}px`;
             building.style.top = `${20 + y}px`;
             building.style.height = `${height}px`;
+            const scale = 1 - (distanceFromCenter * 0.15);
+            building.style.transform = `translate(-50%, -50%) scale(${scale})`;
 
             const windows = document.createElement('div');
             windows.className = 'skyscraper-windows';
@@ -2770,6 +2884,13 @@ function generateCityBuildings(cityEl, city) {
     const glow = document.createElement('div');
     glow.className = 'city-glow';
     buildingsContainer.appendChild(glow);
+
+    const allBuildings = Array.from(buildingsContainer.querySelectorAll(
+        '.building-hut, .building-house, .building-skyscraper, ' +
+        '.specialization-military-fort, .specialization-trade-bank, .specialization-research-library, ' +
+        '.entertainment-building, .emergency-shelter-building'
+    ));
+    adjustBuildingPositions(allBuildings, 20, 20);
 
     cityEl.insertBefore(buildingsContainer, cityEl.firstChild);
 }
@@ -3125,6 +3246,14 @@ units.forEach((unit, index) => {
 }
 
 function handlePlanetClick(e) {
+    if (game.placingSpaceport) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        placeSpaceport(x, y);
+        return;
+    }
+
     if (WonderSystem.placingWonder) {
         const rect = e.currentTarget.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
@@ -4645,9 +4774,157 @@ function setLaw(lawKey) {
 }
 
 function toggleSpaceportPanel() {
-    const panel = document.getElementById('spaceport-panel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    updateSpaceportPanel();
+    const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
+    const totalRes = game.resources.food + game.resources.metal + game.resources.energy;
+
+    if (totalPop < 5000) {
+        addMessage('Need 5000 population to build Spaceport!', 'warning');
+        return;
+    }
+
+    if (totalRes < 12000) {
+        addMessage('Need 12000 total resources (4000F + 4000M + 4000E) to build Spaceport!', 'warning');
+        return;
+    }
+
+    if (game.spaceportBuilding) {
+        addMessage('Spaceport already under construction!', 'warning');
+        return;
+    }
+
+    startSpaceportPlacement();
+}
+
+function startSpaceportPlacement() {
+    game.placingSpaceport = true;
+    game.placingCity = false;
+    game.buildingRoad = false;
+    game.roadStartCity = null;
+    WonderSystem.placingWonder = null;
+
+    document.getElementById('planet-view').classList.add('placing-city');
+    addMessage('Place Spaceport near one of your cities (within 15% range)', 'info');
+}
+
+function canPlaceSpaceportAt(x, y) {
+    const nearbyCity = game.cities.find(city => {
+        const distance = Math.sqrt(Math.pow(x - city.x, 2) + Math.pow(y - city.y, 2));
+        return distance < 15 && !city.isRebel;
+    });
+
+    return nearbyCity !== undefined;
+}
+
+function placeSpaceport(x, y) {
+    if (!canPlaceSpaceportAt(x, y)) {
+        addMessage('Spaceport must be near a city (within 15%)!', 'warning');
+        return;
+    }
+
+    const cost = { food: 4000, metal: 4000, energy: 4000 };
+    spendResources(cost);
+
+    game.spaceportBuilding = true;
+    game.spaceportYearStarted = game.year;
+    game.spaceportX = x;
+    game.spaceportY = y;
+    game.placingSpaceport = false;
+
+    createSpaceportElement(x, y);
+
+    document.getElementById('planet-view').classList.remove('placing-city');
+    addMessage('Spaceport construction started! Will take 10 years.', 'success');
+    AudioManager.playSFX('sfx-city-build', 0.7);
+}
+
+function createSpaceportElement(x, y) {
+    const el = document.createElement('div');
+    el.className = 'spaceport';
+    el.id = 'spaceport';
+    el.style.cssText = `
+        position: absolute;
+        left: ${x}%;
+        top: ${y}%;
+        transform: translate(-50%, -50%);
+        width: 100px;
+        height: 100px;
+        z-index: 23;
+        cursor: pointer;
+    `;
+
+    el.innerHTML = `
+        <div class="spaceport-structure">
+            <div class="spaceport-base"></div>
+            <div class="spaceport-tower"></div>
+            <div class="spaceport-dish dish-1"></div>
+            <div class="spaceport-dish dish-2"></div>
+            <div class="spaceport-rocket"></div>
+            <div class="spaceport-flame"></div>
+            <div class="spaceport-ring ring-1"></div>
+            <div class="spaceport-ring ring-2"></div>
+            <div class="spaceport-ring ring-3"></div>
+        </div>
+        <div style="
+            position: absolute;
+            top: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            background: rgba(0,0,0,0.9);
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+        ">
+            SPACEPORT
+        </div>
+        <div class="spaceport-progress-bar" style="
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90px;
+            height: 10px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            overflow: hidden;
+        ">
+            <div class="spaceport-progress-fill" style="
+                width: 0%;
+                height: 100%;
+                background: #00ffff;
+                transition: width 0.3s;
+                box-shadow: 0 0 10px #00ffff;
+            "></div>
+        </div>
+    `;
+
+    el.onclick = (e) => {
+        e.stopPropagation();
+        selectSpaceport();
+    };
+
+    document.getElementById('planet-view').appendChild(el);
+}
+
+function selectSpaceport() {
+    const panel = document.getElementById('info-panel');
+    const progress = game.spaceportProgress.toFixed(1);
+    const yearsLeft = Math.ceil(10 - (game.spaceportProgress / 10));
+
+    panel.innerHTML = `
+        <h3>🚀 SPACEPORT</h3>
+        <p><strong>Progress:</strong> ${progress}%</p>
+        <p><strong>Time Remaining:</strong> ${yearsLeft} years</p>
+        <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 5px; margin: 10px 0;">
+            <p style="color: #00ffff;"><strong>Effect:</strong> Evacuate civilization to a stable planet</p>
+            <p style="font-size: 10px; margin-top: 5px; color: #ff4400;">⚠️ Population must stay above 3500 during construction!</p>
+        </div>
+    `;
+    panel.style.display = 'block';
 }
 
 function updateSpaceportPanel() {
@@ -4715,14 +4992,14 @@ function updateUI() {
     document.getElementById('tribal-rep').textContent = game.tribalReputation;
 
     document.getElementById('gather-btn').disabled = game.gatherCooldown > 0;
-    const baseCityCost = {
-        food: Math.floor(200 * (1 - TechTree.getTechBonus('cityCost'))),
-        metal: Math.floor(200 * (1 - TechTree.getTechBonus('cityCost'))),
-        energy: Math.floor(100 * (1 - TechTree.getTechBonus('cityCost')))
+    const baseRoadCost = {
+        food: 0,
+        metal: Math.floor(100 * (1 - TechTree.getTechBonus('roadCost'))),
+        energy: Math.floor(50 * (1 - TechTree.getTechBonus('roadCost')))
     };
 
     document.getElementById('build-city-btn').disabled = !hasResources(baseCityCost);
-    document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources({metal: 100, energy: 50}) || game.placingCity;
+    document.getElementById('build-road-btn').disabled = !game.selectedCity || !hasResources(baseRoadCost) || game.placingCity;
 
     document.getElementById('recruit-infantry-btn').disabled = !hasResources({food: 50, metal: 50, energy: 0}) || totalPop < 50;
     document.getElementById('recruit-cavalry-btn').disabled = !hasResources({food: 100, metal: 100, energy: 50}) || totalPop < 100;
