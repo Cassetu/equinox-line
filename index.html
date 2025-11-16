@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Equinox Line - V1.1.3</title>
+    <title>Equinox Line - V1.2</title>
     <link rel="icon" type="image/png" href="images/icon.png">
     <link href="style.css" rel="stylesheet"/>
 </head>
@@ -263,21 +263,95 @@
         <button class="action-btn" id="start-spaceport-btn" style="font-size: 11px;">Start Construction</button>
     </div>
 
-    <div id="ddr-overlay">
-        <div id="ddr-container">
-            <div id="ddr-title"></div>
-            <div id="ddr-combo">Combo: 0 | Bonus: +0%</div>
-            <div id="ddr-arrows">
-                <div class="ddr-arrow" data-key="ArrowLeft">←</div>
-                <div class="ddr-arrow" data-key="ArrowUp">↑</div>
-                <div class="ddr-arrow" data-key="ArrowDown">↓</div>
-                <div class="ddr-arrow" data-key="ArrowRight">→</div>
+    <div id="battle-overlay">
+        <div id="battle-container">
+            <div id="battle-header">
+                <div id="battle-timer">Time: 30s</div>
+                <div id="battle-morale">Morale: 100%</div>
+                <div id="weather-display"></div>
             </div>
-            <div id="ddr-timer">Time remaining: 10s</div>
-            <button id="reinforcement-btn" onclick="callReinforcements()"
-                    style="margin-top: 15px; padding: 8px 16px; font-size: 12px;">
-                Call Reinforcements (300 res)
-            </button>
+
+            <div id="battlefield">
+                <div id="player-side" class="army-side">
+                    <div class="unit-group" data-type="infantry">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                    <div class="unit-group" data-type="cavalry">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                    <div class="unit-group" data-type="artillery">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                </div>
+
+                <div id="battle-middle">
+                    <canvas id="battle-canvas"></canvas>
+                </div>
+
+                <div id="enemy-side" class="army-side">
+                    <div class="unit-group" data-type="infantry">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                    <div class="unit-group" data-type="cavalry">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                    <div class="unit-group" data-type="artillery">
+                        <div class="unit-icon-display"></div>
+                        <div class="unit-health-bar"><div class="health-fill"></div></div>
+                        <div class="unit-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="battle-controls">
+                <div class="unit-commands" data-unit="infantry">
+                    <div class="unit-label">Infantry</div>
+                    <button class="cmd-btn" data-cmd="advance">⬆️ Advance</button>
+                    <button class="cmd-btn" data-cmd="hold">🛡️ Hold</button>
+                    <button class="cmd-btn" data-cmd="focus">🎯 Focus</button>
+                </div>
+                <div class="unit-commands" data-unit="cavalry">
+                    <div class="unit-label">Cavalry</div>
+                    <button class="cmd-btn" data-cmd="advance">⬆️ Advance</button>
+                    <button class="cmd-btn" data-cmd="hold">🛡️ Hold</button>
+                    <button class="cmd-btn" data-cmd="focus">🎯 Focus</button>
+                </div>
+                <div class="unit-commands" data-unit="artillery">
+                    <div class="unit-label">Artillery</div>
+                    <button class="cmd-btn" data-cmd="advance">⬆️ Advance</button>
+                    <button class="cmd-btn" data-cmd="hold">🛡️ Hold</button>
+                    <button class="cmd-btn" data-cmd="focus">🎯 Focus</button>
+                </div>
+            </div>
+
+            <div style="grid-column: 1 / -1; margin-top: 8px; padding-top: 8px; border-top: 2px solid #666;">
+                <div style="text-align: center; font-size: 11px; font-weight: bold; color: #ffaa00; margin-bottom: 6px;">
+                    PRIORITY TARGET
+                </div>
+                <div style="display: flex; gap: 6px; justify-content: center;">
+                    <button class="target-btn" data-target="infantry">Target Infantry</button>
+                    <button class="target-btn" data-target="cavalry">Target Cavalry</button>
+                    <button class="target-btn" data-target="artillery">Target Artillery</button>
+                    <button class="target-btn active" data-target="auto">Auto-Target</button>
+                </div>
+            </div>
+
+            <div id="battle-actions">
+                <button id="reinforcement-btn">Call Reinforcements (300 res)</button>
+                <div id="perk-abilities"></div>
+            </div>
+
+            <div id="battle-log"></div>
         </div>
     </div>
 

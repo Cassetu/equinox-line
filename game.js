@@ -3808,87 +3808,553 @@ function sendScout() {
 
 
 function cancelBattlePlanning() {
-document.getElementById('battle-planning').style.display = 'none';
-game.currentBattle = null;
+    document.getElementById('battle-planning').style.display = 'none';
+    game.currentBattle = null;
 }
 
 
-    function startEnhancedDDRBattle(tribal) {
-const closestCity = getClosestPlayerCity(tribal);
-if (!closestCity) {
-    addMessage('No city available to launch attack!', 'warning');
-    game.ddrActive = false;
-    return;
-}
-
-game.ddrActive = true;
-game.ddrCombo = 0;
-game.ddrBonus = 0;
-game.ddrCurrentIndex = 0;
-game.battlePhase = 1;
-
-if (game.activePerks.includes('veteranTroops')) {
-    game.ddrCombo = 2;
-    game.ddrBonus = 20;
-}
-
-AudioManager.playBattleMusic();
-
-const totalUnits = closestCity.stationedUnits.infantry + closestCity.stationedUnits.cavalry + closestCity.stationedUnits.artillery;
-const sequenceLength = Math.min(15, 8 + Math.floor(totalUnits / 3));
-
-const arrows = ['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'];
-game.ddrSequence = [];
-for (let i = 0; i < sequenceLength; i++) {
-    game.ddrSequence.push(arrows[Math.floor(Math.random() * arrows.length)]);
-}
-
-document.getElementById('ddr-overlay').classList.add('active');
-document.getElementById('ddr-combo').textContent = `Combo: ${game.ddrCombo} | Bonus: +${game.ddrBonus}%`;
-
-const weatherIndicator = document.getElementById('weather-indicator');
-weatherIndicator.textContent = game.weatherEvent.name + ' - ' + game.weatherEvent.description;
-weatherIndicator.style.display = 'block';
-
-setTimeout(() => {
-    weatherIndicator.style.display = 'none';
-}, 3000);
-
-showPhaseIndicator('Phase 1: Artillery Barrage');
-
-let timeLeft = 15;
-const timerEl = document.getElementById('ddr-timer');
-
-const timerInterval = setInterval(() => {
-    timeLeft -= 0.1;
-    timerEl.textContent = `Time remaining: ${timeLeft.toFixed(1)}s`;
-
-    if (game.battlePhase === 1 && game.ddrCurrentIndex >= 5) {
-        game.battlePhase = 2;
-        showPhaseIndicator('Phase 2: Cavalry Charge');
-    } else if (game.battlePhase === 2 && game.ddrCurrentIndex >= 10) {
-        game.battlePhase = 3;
-        showPhaseIndicator('Phase 3: Infantry Clash');
+function startEnhancedDDRBattle(tribal) {
+    console.log('Starting battle with:', {
+        playerInf: game.cities.reduce((sum, c) => sum + c.stationedUnits.infantry, 0),
+        playerCav: game.cities.reduce((sum, c) => sum + c.stationedUnits.cavalry, 0),
+        playerArt: game.cities.reduce((sum, c) => sum + c.stationedUnits.artillery, 0),
+        enemyInf: tribal.units.infantry,
+        enemyCav: tribal.units.cavalry,
+        enemyArt: tribal.units.artillery
+    });
+    const closestCity = getClosestPlayerCity(tribal);
+    if (!closestCity) {
+        addMessage('No city available to launch attack!', 'warning');
+        return;
     }
 
-    if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        endEnhancedDDRBattle();
-    }
-}, 100);
+    game.ddrActive = true;
+    AudioManager.playBattleMusic();
 
-game.ddrTimeout = timerInterval;
-nextEnhancedDDRArrow();
+    const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
+
+    const playerUnits = {
+        infantry: 0,
+        cavalry: 0,
+        artillery: 0
+    };
+
+    attackingCities.forEach(city => {
+        playerUnits.infantry += city.stationedUnits.infantry;
+        playerUnits.cavalry += city.stationedUnits.cavalry;
+        playerUnits.artillery += city.stationedUnits.artillery;
+    });
+
+    const enemyUnits = {
+        infantry: tribal.units.infantry,
+        cavalry: tribal.units.cavalry,
+        artillery: tribal.units.artillery
+    };
+
+    const battleState = {
+        tribal: tribal,
+        attackingCities: attackingCities,
+        playerUnits: JSON.parse(JSON.stringify(playerUnits)),
+        enemyUnits: JSON.parse(JSON.stringify(enemyUnits)),
+        playerHealth: {
+            infantry: playerUnits.infantry * 100,
+            cavalry: playerUnits.cavalry * 100,
+            artillery: playerUnits.artillery * 100
+        },
+        enemyHealth: {
+            infantry: enemyUnits.infantry * 100,
+            cavalry: enemyUnits.cavalry * 100,
+            artillery: enemyUnits.artillery * 100
+        },
+        playerCommands: {
+            infantry: 'advance',
+            cavalry: 'advance',
+            artillery: 'hold'
+        },
+        enemyCommands: {
+            infantry: 'advance',
+            cavalry: 'advance',
+            artillery: 'hold'
+        },
+        timeLeft: 90,
+        battlePhase: 1,
+        morale: game.battleMorale,
+        weather: game.weatherEvent,
+        formation: FORMATIONS[game.battleFormation],
+        perksUsed: [],
+        commandCooldowns: {
+            infantry: 0,
+            cavalry: 0,
+            artillery: 0
+        }
+    };
+
+    game.currentBattleState = battleState;
+
+    document.getElementById('battle-overlay').classList.add('active');
+    initializeBattleUI(battleState);
+    startBattleLoop(battleState);
+}
+
+function initializeBattleUI(state) {
+    document.getElementById('weather-display').textContent = state.weather.name;
+    document.getElementById('battle-morale').textContent = `Morale: ${state.morale}%`;
+
+    const unitIcons = {
+        infantry: '⚔',
+        cavalry: '♞',
+        artillery: '⚡'
+    };
+
+    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+        const playerGroup = document.querySelector(`#player-side .unit-group[data-type="${type}"]`);
+        const enemyGroup = document.querySelector(`#enemy-side .unit-group[data-type="${type}"]`);
+
+        playerGroup.querySelector('.unit-icon-display').textContent = unitIcons[type];
+        enemyGroup.querySelector('.unit-icon-display').textContent = unitIcons[type];
+
+        playerGroup.querySelector('.unit-count').textContent = state.playerUnits[type];
+        enemyGroup.querySelector('.unit-count').textContent = state.enemyUnits[type];
+
+        if (state.playerUnits[type] === 0) {
+            playerGroup.style.opacity = '0.3';
+        }
+        if (state.enemyUnits[type] === 0) {
+            enemyGroup.style.opacity = '0.3';
+        }
+    });
+
+    setupBattleControls(state);
+    setupPerkAbilities(state);
+
+    const canvas = document.getElementById('battle-canvas');
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    updateHealthBars(state);
+
+    addBattleLog('Battle begins!', 'event');
+    addBattleLog(`${state.weather.name} - ${state.weather.description}`, 'event');
+}
+
+function setupBattleControls(state) {
+    document.querySelectorAll('.cmd-btn').forEach(btn => {
+        btn.onclick = () => {
+            const unitType = btn.closest('.unit-commands').dataset.unit;
+            const command = btn.dataset.cmd;
+
+            if (state.commandCooldowns[unitType] > 0) {
+                addBattleLog(`${unitType.toUpperCase()} still executing previous order! (${Math.ceil(state.commandCooldowns[unitType] / 10)}s)`, 'event');
+                return;
+            }
+
+            if (state.playerUnits[unitType] === 0) {
+                addBattleLog(`No ${unitType} units available!`, 'event');
+                return;
+            }
+
+            state.playerCommands[unitType] = command;
+            state.commandCooldowns[unitType] = 50;
+
+            const parentCommands = btn.closest('.unit-commands');
+            parentCommands.querySelectorAll('.cmd-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const unitGroup = document.querySelector(`#player-side .unit-group[data-type="${unitType}"]`);
+            unitGroup.classList.add('active');
+            setTimeout(() => unitGroup.classList.remove('active'), 500);
+
+            let commandDesc = '';
+            if (command === 'advance') commandDesc = 'charging forward (+30% ATK, -20% DEF)';
+            if (command === 'hold') commandDesc = 'holding position (+40% DEF, -10% ATK)';
+            if (command === 'focus') commandDesc = 'focusing fire (+50% ATK, -40% DEF)';
+
+            addBattleLog(`${unitType.toUpperCase()} ${commandDesc}`, 'event');
+            AudioManager.playSFX('sfx-button-click', 0.5);
+        };
+    });
+
+    document.getElementById('reinforcement-btn').onclick = () => {
+        if (canCallReinforcements()) {
+            callBattleReinforcements(state);
+        } else {
+            addBattleLog('No reinforcements available!', 'event');
+        }
+    };
+
+    state.priorityTarget = 'auto';
+
+    document.querySelectorAll('.target-btn').forEach(btn => {
+        btn.onclick = () => {
+            const target = btn.dataset.target;
+            state.priorityTarget = target;
+
+            document.querySelectorAll('.target-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (target === 'auto') {
+                addBattleLog('Auto-targeting weakest enemies', 'event');
+            } else {
+                addBattleLog(`Prioritizing enemy ${target}!`, 'event');
+            }
+
+            AudioManager.playSFX('sfx-button-click', 0.3);
+        };
+    });
+}
+
+function updateCommandButtons(state) {
+    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+        const buttons = document.querySelectorAll(`.unit-commands[data-unit="${type}"] .cmd-btn`);
+        const cooldown = state.commandCooldowns[type];
+
+        buttons.forEach(btn => {
+            if (cooldown > 0) {
+                btn.disabled = true;
+                const seconds = Math.ceil(cooldown / 10);
+                const originalText = btn.textContent.split('(')[0].trim();
+                btn.textContent = `${originalText} (${seconds}s)`;
+            } else {
+                btn.disabled = false;
+                const command = btn.dataset.cmd;
+                if (command === 'advance') btn.textContent = '⬆️ Advance';
+                if (command === 'hold') btn.textContent = '🛡️ Hold';
+                if (command === 'focus') btn.textContent = '🎯 Focus';
+            }
+        });
+    });
+}
+
+function startBattleLoop(state) {
+    let tickCount = 0;
+
+    const battleInterval = setInterval(() => {
+        tickCount++;
+        state.timeLeft -= 0.1;
+
+        document.getElementById('battle-timer').textContent = `Time: ${Math.ceil(state.timeLeft)}s`;
+
+        ['infantry', 'cavalry', 'artillery'].forEach(type => {
+            if (state.commandCooldowns[type] > 0) {
+                state.commandCooldowns[type]--;
+            }
+        });
+
+        if (tickCount % 20 === 0) {
+            processBattleTick(state);
+        }
+
+        const combatInterval = state.blitzActive ? 10 : 20;
+
+        if (tickCount % combatInterval === 0) {
+            processBattleTick(state);
+        }
+
+        if (tickCount === 200) {
+            state.battlePhase = 2;
+            addBattleLog('⚔️ PHASE 2: Frontlines clash!', 'event');
+            AudioManager.playSFX('sfx-alert', 0.4);
+        }
+
+        if (tickCount === 500) {
+            state.battlePhase = 3;
+            addBattleLog('🔥 PHASE 3: Desperate struggle!', 'event');
+            AudioManager.playSFX('sfx-alert', 0.4);
+        }
+
+        if (tickCount % 5 === 0) {
+            updateBattleCanvas(state);
+        }
+
+        if (tickCount % 30 === 0) {
+            enemyAI(state);
+        }
+
+        updateHealthBars(state);
+        updateCommandButtons(state);
+
+        if (tickCount > 50) {
+            const battleOver = checkBattleEnd(state);
+            if (battleOver || state.timeLeft <= 0) {
+                clearInterval(battleInterval);
+                setTimeout(() => endBattle(state), 500);
+            }
+        }
+
+    }, 100);
+
+    state.battleInterval = battleInterval;
+}
+
+function processBattleTick(state) {
+    const prediction = calculateBattlePrediction(state.tribal);
+
+    const ticksSinceStart = (90 - state.timeLeft) * 10;
+    const swiftStrikeBonus = (game.activePerks.includes('swiftStrike') && ticksSinceStart < 100) ? 1.25 : 1.0;
+    const blitzBonus = state.blitzActive ? 2.0 : 1.0;
+
+    ['infantry', 'cavalry', 'artillery'].forEach(attackerType => {
+        if (state.playerHealth[attackerType] <= 0) return;
+
+        const attackMod = getCommandModifier(state.playerCommands[attackerType], 'attack');
+        const baseAttack = UNIT_TYPES[attackerType].attack;
+        const techBonus = 1 + TechTree.getTechBonus(attackerType + 'Attack');
+        const formationMod = state.formation.atkMod;
+        const moraleMod = 0.5 + (state.morale / 100);
+        const distanceMod = prediction ? prediction.distancePenalty : 1;
+
+        let totalAttack = baseAttack * state.playerUnits[attackerType] * attackMod * techBonus * formationMod * moraleMod * distanceMod * swiftStrikeBonus * blitzBonus;
+
+        if (game.activePerks.includes('inspiration') && state.morale > 75) {
+            totalAttack *= 1.15;
+        }
+
+        const weatherMod = getWeatherModifier(state.weather, attackerType);
+        totalAttack *= weatherMod;
+
+        let targetTypes = ['infantry', 'cavalry', 'artillery'];
+
+        if (state.priorityTarget && state.priorityTarget !== 'auto') {
+            if (state.enemyHealth[state.priorityTarget] > 0) {
+                targetTypes = [state.priorityTarget];
+            }
+        }
+
+        targetTypes.forEach(defenderType => {
+            if (state.enemyHealth[defenderType] > 0) {
+                const priorityMod = (state.priorityTarget === defenderType) ? 1.5 : 1.0;
+                const damage = (totalAttack / 6) * priorityMod / targetTypes.length;
+                state.enemyHealth[defenderType] -= damage;
+
+                if (damage > 50) {
+                    addBattleLog(`Your ${attackerType} dealt ${Math.floor(damage)} damage to enemy ${defenderType}!`, 'damage');
+                }
+            }
+        });
+    });
+
+    ['infantry', 'cavalry', 'artillery'].forEach(attackerType => {
+        if (state.enemyHealth[attackerType] <= 0) return;
+
+        const attackMod = getCommandModifier(state.enemyCommands[attackerType], 'attack');
+        const baseAttack = UNIT_TYPES[attackerType].attack;
+        const formationMod = 1.0;
+
+        let totalAttack = baseAttack * state.enemyUnits[attackerType] * attackMod * formationMod;
+
+        ['infantry', 'cavalry', 'artillery'].forEach(defenderType => {
+            if (state.playerHealth[defenderType] > 0) {
+                const defenseMod = getCommandModifier(state.playerCommands[defenderType], 'defense');
+                const baseDefense = UNIT_TYPES[defenderType].defense;
+                const techBonus = 1 + TechTree.getTechBonus('defenseBonus');
+                const formationDefMod = state.formation.defMod;
+
+                let totalDefense = baseDefense * defenseMod * techBonus * formationDefMod;
+
+                if (game.activePerks.includes('defensiveGenius')) {
+                    totalDefense *= 1.25;
+                }
+
+                const damage = Math.max(0, (totalAttack / 6) - totalDefense);
+                state.playerHealth[defenderType] -= damage;
+            }
+        });
+    });
+
+    enemyAI(state);
+}
+
+function getCommandModifier(command, type) {
+    const modifiers = {
+        advance: { attack: 1.3, defense: 0.8 },
+        hold: { attack: 0.9, defense: 1.4 },
+        focus: { attack: 1.5, defense: 0.6 }
+    };
+
+    return modifiers[command][type];
+}
+
+function getWeatherModifier(weather, unitType) {
+    if (!weather) return 1.0;
+
+    const effects = {
+        '☀️ Clear Skies': { infantry: 1.0, cavalry: 1.0, artillery: 1.0 },
+        '🌫️ Fog of War': { infantry: 1.0, cavalry: 0.8, artillery: 0.7 },
+        '🌪️ Sandstorm': { infantry: 0.9, cavalry: 0.7, artillery: 0.6 },
+        '❄️ Frost': { infantry: 0.85, cavalry: 0.7, artillery: 0.9 }
+    };
+
+    return effects[weather.name]?.[unitType] || 1.0;
+}
+
+function enemyAI(state) {
+    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+        if (state.enemyHealth[type] <= 0) return;
+
+        const healthPercent = state.enemyHealth[type] / (state.enemyUnits[type] * 100);
+        const oldCommand = state.enemyCommands[type];
+        let newCommand = oldCommand;
+
+        if (healthPercent < 0.3) {
+            newCommand = 'hold';
+        } else if (healthPercent > 0.7) {
+            const commands = ['advance', 'focus'];
+            newCommand = commands[Math.floor(Math.random() * commands.length)];
+        } else {
+            const commands = ['advance', 'hold'];
+            newCommand = commands[Math.floor(Math.random() * commands.length)];
+        }
+
+        if (newCommand !== oldCommand) {
+            state.enemyCommands[type] = newCommand;
+            let desc = '';
+            if (newCommand === 'advance') desc = 'advancing';
+            if (newCommand === 'hold') desc = 'holding position';
+            if (newCommand === 'focus') desc = 'focusing fire';
+            addBattleLog(`Enemy ${type} ${desc}!`, 'event');
+
+            const enemyGroup = document.querySelector(`#enemy-side .unit-group[data-type="${type}"]`);
+            if (enemyGroup) {
+                enemyGroup.classList.add('active');
+                setTimeout(() => enemyGroup.classList.remove('active'), 500);
+            }
+        }
+    });
+}
+
+function updateHealthBars(state) {
+    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+        const playerMaxHealth = state.playerUnits[type] * 100;
+        const enemyMaxHealth = state.enemyUnits[type] * 100;
+
+        const playerPercent = playerMaxHealth > 0 ? (state.playerHealth[type] / playerMaxHealth) * 100 : 0;
+        const enemyPercent = enemyMaxHealth > 0 ? (state.enemyHealth[type] / enemyMaxHealth) * 100 : 0;
+
+        const playerBar = document.querySelector(`#player-side .unit-group[data-type="${type}"] .health-fill`);
+        const enemyBar = document.querySelector(`#enemy-side .unit-group[data-type="${type}"] .health-fill`);
+
+        if (playerBar) playerBar.style.width = `${Math.max(0, playerPercent)}%`;
+        if (enemyBar) enemyBar.style.width = `${Math.max(0, enemyPercent)}%`;
+    });
+
+    const moraleEl = document.getElementById('battle-morale');
+    if (game.activePerks.includes('inspiration') && state.morale > 75) {
+        moraleEl.style.textShadow = '0 0 10px #ffaa00, 0 0 20px #ffaa00';
+        moraleEl.style.color = '#ffff00';
+    } else {
+        moraleEl.style.textShadow = 'none';
+        moraleEl.style.color = '#ffaa00';
+    }
+}
+
+function updateBattleCanvas(state) {
+    const canvas = document.getElementById('battle-canvas');
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.globalAlpha = 0.3;
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, '#00ff00');
+    gradient.addColorStop(0.5, '#ffaa00');
+    gradient.addColorStop(1, '#ff4400');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, canvas.height / 2 - 2, canvas.width, 4);
+    ctx.globalAlpha = 1.0;
+
+    const playerAlive = ['infantry', 'cavalry', 'artillery'].filter(t => state.playerHealth[t] > 0).length;
+    const enemyAlive = ['infantry', 'cavalry', 'artillery'].filter(t => state.enemyHealth[t] > 0).length;
+
+    for (let i = 0; i < playerAlive * 3; i++) {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(
+            50 + Math.random() * 100,
+            canvas.height / 2 + (Math.random() - 0.5) * 60,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+    }
+
+    for (let i = 0; i < enemyAlive * 3; i++) {
+        ctx.fillStyle = '#ff4400';
+        ctx.beginPath();
+        ctx.arc(
+            canvas.width - 50 - Math.random() * 100,
+            canvas.height / 2 + (Math.random() - 0.5) * 60,
+            3,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+    }
+
+    if (Math.random() > 0.7) {
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * canvas.width * 0.4 + 50, canvas.height / 2);
+        ctx.lineTo(Math.random() * canvas.width * 0.4 + canvas.width * 0.6, canvas.height / 2 + (Math.random() - 0.5) * 40);
+        ctx.stroke();
+    }
+}
+
+function addBattleLog(message, type = 'event') {
+    const log = document.getElementById('battle-log');
+    const entry = document.createElement('div');
+    entry.className = `battle-log-entry log-${type}`;
+    entry.textContent = message;
+
+    log.insertBefore(entry, log.firstChild);
+
+    if (log.children.length > 15) {
+        log.removeChild(log.lastChild);
+    }
+}
+
+function checkBattleEnd(state) {
+    const playerAlive = ['infantry', 'cavalry', 'artillery'].some(t =>
+        state.playerHealth[t] > 0 && state.playerUnits[t] > 0
+    );
+    const enemyAlive = ['infantry', 'cavalry', 'artillery'].some(t =>
+        state.enemyHealth[t] > 0 && state.enemyUnits[t] > 0
+    );
+
+    if (!playerAlive) {
+        state.defeated = true;
+        return true;
+    }
+
+    if (!enemyAlive) {
+        state.victory = true;
+        return true;
+    }
+
+    const totalPlayerHealth = state.playerHealth.infantry + state.playerHealth.cavalry + state.playerHealth.artillery;
+    const totalPlayerMax = (state.playerUnits.infantry + state.playerUnits.cavalry + state.playerUnits.artillery) * 100;
+
+    if (totalPlayerMax === 0) return false;
+
+    const casualtyPercent = ((totalPlayerMax - totalPlayerHealth) / totalPlayerMax) * 100;
+
+    if (game.retreatThreshold > 0 && casualtyPercent >= game.retreatThreshold && totalPlayerHealth > 0) {
+        state.retreated = true;
+        return true;
+    }
+
+    return false;
 }
 
 function showPhaseIndicator(text) {
-const indicator = document.getElementById('phase-indicator');
-indicator.textContent = text;
-indicator.style.display = 'block';
+    const indicator = document.getElementById('phase-indicator');
+    indicator.textContent = text;
+    indicator.style.display = 'block';
 
-setTimeout(() => {
-    indicator.style.display = 'none';
-}, 2000);
+    setTimeout(() => {
+        indicator.style.display = 'none';
+    }, 2000);
 }
 
 function nextEnhancedDDRArrow() {
@@ -4124,155 +4590,111 @@ function updateMinimap() {
     viewport.style.height = `${viewHeight}%`;
 }
 
-function endEnhancedDDRBattle() {
-    if (game.ddrTimeout) {
-        clearInterval(game.ddrTimeout);
-        game.ddrTimeout = null;
+function endBattle(state) {
+    if (state.battleInterval) {
+        clearInterval(state.battleInterval);
     }
 
     AudioManager.playBgMusic();
+    document.getElementById('battle-overlay').classList.remove('active');
 
-    document.getElementById('ddr-overlay').classList.remove('active');
-    document.getElementById('weather-indicator').style.display = 'none';
-    document.getElementById('phase-indicator').style.display = 'none';
+    const tribal = state.tribal;
+    const attackingCities = state.attackingCities;
 
-    if (!game.currentBattle) {
-        game.ddrActive = false;
-        return;
-    }
+    const playerSurvivors = {
+        infantry: Math.max(0, Math.floor(state.playerHealth.infantry / 100)),
+        cavalry: Math.max(0, Math.floor(state.playerHealth.cavalry / 100)),
+        artillery: Math.max(0, Math.floor(state.playerHealth.artillery / 100))
+    };
 
-    const tribal = game.currentBattle;
-    const formation = FORMATIONS[game.battleFormation];
-    const prediction = calculateBattlePrediction(tribal);
-    const closestCity = getClosestPlayerCity(tribal);
+    const enemySurvivors = {
+        infantry: Math.max(0, Math.floor(state.enemyHealth.infantry / 100)),
+        cavalry: Math.max(0, Math.floor(state.enemyHealth.cavalry / 100)),
+        artillery: Math.max(0, Math.floor(state.enemyHealth.artillery / 100))
+    };
 
-    let playerAttack = (closestCity.stationedUnits.infantry * UNIT_TYPES.infantry.attack +
-                   closestCity.stationedUnits.cavalry * UNIT_TYPES.cavalry.attack +
-                   closestCity.stationedUnits.artillery * UNIT_TYPES.artillery.attack);
+    attackingCities.forEach(city => {
+        city.stationedUnits.infantry = 0;
+        city.stationedUnits.cavalry = 0;
+        city.stationedUnits.artillery = 0;
+    });
 
-    playerAttack *= formation.atkMod;
-    playerAttack *= (1 + TechTree.getTechBonus('attackBonus'));
-    playerAttack *= (1 + game.ddrBonus / 100);
-    playerAttack *= prediction.distancePenalty;
-    playerAttack *= prediction.moraleMod;
+    const totalSurvivors = playerSurvivors.infantry + playerSurvivors.cavalry + playerSurvivors.artillery;
+    let distributedUnits = 0;
 
-    if (game.activePerks.includes('inspiration') && game.battleMorale > 75) {
-        playerAttack *= 1.15;
-    }
+    attackingCities.forEach((city, index) => {
+        if (distributedUnits >= totalSurvivors) return;
 
-    let playerDefense = (closestCity.stationedUnits.infantry * 3 + closestCity.stationedUnits.cavalry * 5 + closestCity.stationedUnits.artillery * 2) + (closestCity.population * 0.5) + (closestCity.upgradeLevel * 50);
+        const remainingUnits = totalSurvivors - distributedUnits;
+        const unitsForThisCity = Math.min(8, remainingUnits);
 
-    playerDefense *= formation.defMod;
-    playerDefense *= (1 + TechTree.getTechBonus('defenseBonus') + WonderSystem.getWonderBonus('cityDefense'));
+        let assigned = 0;
+        while (assigned < unitsForThisCity && distributedUnits < totalSurvivors) {
+            if (playerSurvivors.infantry > 0) {
+                city.stationedUnits.infantry++;
+                playerSurvivors.infantry--;
+                assigned++;
+                distributedUnits++;
+            } else if (playerSurvivors.cavalry > 0) {
+                city.stationedUnits.cavalry++;
+                playerSurvivors.cavalry--;
+                assigned++;
+                distributedUnits++;
+            } else if (playerSurvivors.artillery > 0) {
+                city.stationedUnits.artillery++;
+                playerSurvivors.artillery--;
+                assigned++;
+                distributedUnits++;
+            } else {
+                break;
+            }
+        }
 
-    const governorDefenseMod = closestCity.governor && closestCity.governor !== 'none' ? GOVERNOR_TYPES[closestCity.governor].defenseMod : 1.0;
-    playerDefense *= governorDefenseMod;
+        updateCityUnitIcons(city);
+    });
 
-    if (game.activePerks.includes('defensiveGenius')) {
-        playerDefense *= 1.25;
-    }
+    tribal.units.infantry = enemySurvivors.infantry;
+    tribal.units.cavalry = enemySurvivors.cavalry;
+    tribal.units.artillery = enemySurvivors.artillery;
 
-    const tribalAttack = tribal.units.infantry * 5 + tribal.units.cavalry * 12 + tribal.units.artillery * 20;
-    const tribalDefense = tribal.units.infantry * 3 + tribal.units.cavalry * 5 + tribal.units.artillery * 2;
+    const playerLosses = (state.playerUnits.infantry - Math.floor(state.playerHealth.infantry / 100)) +
+                        (state.playerUnits.cavalry - Math.floor(state.playerHealth.cavalry / 100)) +
+                        (state.playerUnits.artillery - Math.floor(state.playerHealth.artillery / 100));
 
-    const damageToTribal = Math.max(0, playerAttack - tribalDefense * 0.3);
-    const damageToPlayer = Math.max(0, tribalAttack - playerDefense * 0.3);
+    const enemyLosses = (state.enemyUnits.infantry - enemySurvivors.infantry) +
+                       (state.enemyUnits.cavalry - enemySurvivors.cavalry) +
+                       (state.enemyUnits.artillery - enemySurvivors.artillery);
 
-    const tribalCasualties = Math.floor(damageToTribal / 15);
-    let tribalInfLost = 0, tribalCavLost = 0, tribalArtLost = 0;
-    let remainingTribalCasualties = tribalCasualties;
+    const enemyTotalSurvivors = enemySurvivors.infantry + enemySurvivors.cavalry + enemySurvivors.artillery;
 
-    if (tribal.units.artillery > 0 && remainingTribalCasualties > 0) {
-        tribalArtLost = Math.min(tribal.units.artillery, Math.ceil(remainingTribalCasualties * 0.3));
-        tribal.units.artillery -= tribalArtLost;
-        remainingTribalCasualties -= tribalArtLost;
-    }
-    if (tribal.units.cavalry > 0 && remainingTribalCasualties > 0) {
-        tribalCavLost = Math.min(tribal.units.cavalry, Math.ceil(remainingTribalCasualties * 0.4));
-        tribal.units.cavalry -= tribalCavLost;
-        remainingTribalCasualties -= tribalCavLost;
-    }
-    if (tribal.units.infantry > 0 && remainingTribalCasualties > 0) {
-        tribalInfLost = Math.min(tribal.units.infantry, remainingTribalCasualties);
-        tribal.units.infantry -= tribalInfLost;
-    }
-
-    const playerCasualties = Math.floor(damageToPlayer / 20);
-    let playerInfLost = 0, playerCavLost = 0, playerArtLost = 0;
-    let remainingPlayerCasualties = playerCasualties;
-
-    if (closestCity.stationedUnits.artillery > 0 && remainingPlayerCasualties > 0) {
-    playerArtLost = Math.min(closestCity.stationedUnits.artillery, Math.ceil(remainingPlayerCasualties * 0.3));
-    closestCity.stationedUnits.artillery -= playerArtLost;
-    remainingPlayerCasualties -= playerArtLost;
-    }
-    if (closestCity.stationedUnits.cavalry > 0 && remainingPlayerCasualties > 0) {
-    playerCavLost = Math.min(closestCity.stationedUnits.cavalry, Math.ceil(remainingPlayerCasualties * 0.4));
-    closestCity.stationedUnits.cavalry -= playerCavLost;
-    remainingPlayerCasualties -= playerCavLost;
-    }
-    if (closestCity.stationedUnits.infantry > 0 && remainingPlayerCasualties > 0) {
-    playerInfLost = Math.min(closestCity.stationedUnits.infantry, remainingPlayerCasualties);
-    closestCity.stationedUnits.infantry -= playerInfLost;
-    }
-
-    const totalPlayerLosses = playerInfLost + playerCavLost + playerArtLost;
-    const totalPlayerForces = closestCity.stationedUnits.infantry + closestCity.stationedUnits.cavalry + closestCity.stationedUnits.artillery + totalPlayerLosses;
-    const casualtyPercent = (totalPlayerLosses / totalPlayerForces) * 100;
-
-    const didRetreat = game.retreatThreshold > 0 && casualtyPercent >= game.retreatThreshold;
-
-    if (didRetreat) {
-        const savedInf = Math.floor(playerInfLost * 0.5);
-        const savedCav = Math.floor(playerCavLost * 0.5);
-        const savedArt = Math.floor(playerArtLost * 0.5);
-
-        closestCity.stationedUnits.infantry += savedInf;
-        closestCity.stationedUnits.cavalry += savedCav;
-        closestCity.stationedUnits.artillery += savedArt;
-
+    if (state.retreated) {
         AudioManager.playSFX('sfx-alert', 0.7);
-        addMessage(`TACTICAL RETREAT at ${casualtyPercent.toFixed(0)}% casualties!`, 'warning');
-        addMessage(`Saved: ${savedInf} Inf, ${savedCav} Cav, ${savedArt} Art`, 'info');
-        addMessage(`Lost: ${playerInfLost - savedInf} Inf, ${playerCavLost - savedCav} Cav, ${playerArtLost - savedArt} Art`, 'danger');
-
-        tribal.population -= damageToTribal * 0.5;
-        addMessage(`Enemy casualties: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'warning');
-
+        addMessage(`TACTICAL RETREAT! Saved ${totalSurvivors} units.`, 'warning');
+        addMessage(`Your losses: ${playerLosses} units`, 'danger');
+        addMessage(`Enemy losses: ${enemyLosses} units`, 'warning');
         awardCommanderXP(10);
-
-        game.ddrActive = false;
-        game.currentBattle = null;
-        game.relentlessUsed = false;
-        return;
-    }
-
-    tribal.population -= damageToTribal;
-
-    if (tribal.population <= 0) {
+    } else if (enemyTotalSurvivors === 0) {
         AudioManager.playSFX('sfx-explosion', 0.7);
-        addMessage(`${tribal.name} conquered! (DDR Bonus: +${game.ddrBonus}%)`, 'success');
-        addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
-        addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art`, 'success');
-        addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
+        addMessage(`${tribal.name} conquered!`, 'success');
+        addMessage(`Your losses: ${playerLosses} units`, 'warning');
+        addMessage(`Enemy eliminated!`, 'success');
 
         let xpGained = 50;
-        if (prediction.risk === 'hard') xpGained = 75;
-        if (prediction.risk === 'suicide') xpGained = 100;
-        if (game.ddrBonus >= 80) xpGained += 25;
+        const prediction = calculateBattlePrediction(tribal);
+        if (prediction && prediction.risk === 'hard') xpGained = 75;
+        if (prediction && prediction.risk === 'suicide') xpGained = 100;
 
         awardCommanderXP(xpGained);
-        addMessage(`+${xpGained} Commander XP (${game.commanderXP}/${game.commanderLevel * 100})`, 'info');
+        addMessage(`+${xpGained} Commander XP`, 'info');
 
         convertTribalCity(tribal);
     } else {
-        addMessage(`Battle at ${tribal.name}! (DDR Bonus: +${game.ddrBonus}%)`, 'warning');
-        addMessage(`Formation: ${game.battleFormation.toUpperCase()} | Morale: ${game.battleMorale}`, 'info');
-        addMessage(`Enemy losses: ${tribalInfLost} Inf, ${tribalCavLost} Cav, ${tribalArtLost} Art (${Math.floor(tribal.population)} pop remains)`, 'warning');
-        addMessage(`Your losses: ${playerInfLost} Inf, ${playerCavLost} Cav, ${playerArtLost} Art`, 'warning');
+        addMessage(`Battle at ${tribal.name}!`, 'warning');
+        addMessage(`Your losses: ${playerLosses} units (${totalSurvivors} survived)`, 'warning');
+        addMessage(`Enemy losses: ${enemyLosses} units (${enemyTotalSurvivors} remain)`, 'warning');
 
-        if (tribal.units.infantry === 0 && tribal.units.cavalry === 0 && tribal.units.artillery === 0) {
-            addMessage(` ${tribal.name} has NO remaining military units!`, 'success');
+        if (enemyTotalSurvivors === 0) {
+            addMessage(`${tribal.name} has NO remaining forces!`, 'success');
         }
 
         awardCommanderXP(25);
@@ -4280,31 +4702,142 @@ function endEnhancedDDRBattle() {
 
     game.ddrActive = false;
     game.currentBattle = null;
-    game.relentlessUsed = false;
+    game.currentBattleState = null;
+}
 
-    const tribalEl = document.getElementById(`tribal-${tribal.id}`);
-    if (tribalEl) {
-    const rect = tribalEl.getBoundingClientRect();
-    const planetRect = document.getElementById('planet-view').getBoundingClientRect();
-    const battleX = rect.left + rect.width / 2 - planetRect.left;
-    const battleY = rect.top + rect.height / 2 - planetRect.top;
+function setupPerkAbilities(state) {
+    const container = document.getElementById('perk-abilities');
+    container.innerHTML = '';
 
-    const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
-    attackingCities.forEach(city => {
-        const distance = Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(city.y - city.y, 2));
-        const returnTime = Math.max(1500, Math.min(4000, distance * 60));
+    game.activePerks.forEach(perkKey => {
+        const perk = PERKS[perkKey];
 
-        const survivors = {
-            infantry: city.stationedUnits.infantry,
-            cavalry: city.stationedUnits.cavalry,
-            artillery: city.stationedUnits.artillery
-        };
+        if (perkKey === 'veteranTroops') {
+            state.morale += 20;
+            ['infantry', 'cavalry', 'artillery'].forEach(type => {
+                if (state.playerUnits[type] > 0) {
+                    state.playerHealth[type] *= 1.1;
+                }
+            });
+            document.getElementById('battle-morale').textContent = `Morale: ${state.morale}%`;
+            addBattleLog('Veteran Troops: +20% starting health, +20 morale', 'event');
+        }
 
-        if (survivors.infantry > 0 || survivors.cavalry > 0 || survivors.artillery > 0) {
-            animateUnitsReturning(battleX, battleY, city, survivors, returnTime);
+        if (perkKey === 'swiftStrike') {
+            const btn = document.createElement('button');
+            btn.className = 'perk-ability-btn';
+            btn.textContent = '⚡ Blitz Attack';
+            btn.title = 'Double attack speed for 10 seconds';
+            btn.onclick = () => {
+                if (!state.perksUsed.includes('swiftStrike')) {
+                    state.blitzActive = true;
+                    state.perksUsed.push('swiftStrike');
+                    btn.disabled = true;
+                    btn.textContent = '⚡ Used';
+                    addBattleLog('BLITZ ATTACK! Attack speed doubled for 10s', 'event');
+                    AudioManager.playSFX('sfx-attack', 0.7);
+
+                    setTimeout(() => {
+                        state.blitzActive = false;
+                        addBattleLog('Blitz attack ended', 'event');
+                    }, 10000);
+                }
+            };
+            container.appendChild(btn);
+        }
+
+        if (perkKey === 'defensiveGenius') {
+            const btn = document.createElement('button');
+            btn.className = 'perk-ability-btn';
+            btn.textContent = '🛡️ Fortify';
+            btn.title = 'All units Hold position with +50% defense for 15s';
+            btn.onclick = () => {
+                if (!state.perksUsed.includes('defensiveGenius')) {
+                    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+                        state.playerCommands[type] = 'hold';
+                        state.commandCooldowns[type] = 0;
+                    });
+                    state.fortifyActive = true;
+                    state.perksUsed.push('defensiveGenius');
+                    btn.disabled = true;
+                    btn.textContent = '🛡️ Used';
+                    addBattleLog('FORTIFY! All units holding with bonus defense', 'event');
+                    AudioManager.playSFX('sfx-success', 0.7);
+
+                    setTimeout(() => {
+                        state.fortifyActive = false;
+                        addBattleLog('Fortification ended', 'event');
+                    }, 15000);
+                }
+            };
+            container.appendChild(btn);
+        }
+
+        if (perkKey === 'inspiration') {
+            const btn = document.createElement('button');
+            btn.className = 'perk-ability-btn';
+            btn.textContent = '🔥 Rally Troops';
+            btn.title = 'Restore 30 morale instantly';
+            btn.onclick = () => {
+                if (!state.perksUsed.includes('inspiration')) {
+                    state.morale = Math.min(100, state.morale + 30);
+                    document.getElementById('battle-morale').textContent = `Morale: ${state.morale}%`;
+                    state.perksUsed.push('inspiration');
+                    btn.disabled = true;
+                    btn.textContent = '🔥 Used';
+                    addBattleLog('RALLY! Morale restored +30', 'event');
+                    AudioManager.playSFX('sfx-success', 0.7);
+                }
+            };
+            container.appendChild(btn);
+        }
+
+        if (perkKey === 'relentless') {
+            const btn = document.createElement('button');
+            btn.className = 'perk-ability-btn';
+            btn.textContent = '🛡️ Last Stand';
+            btn.title = 'Heal 20% HP and prevent retreat';
+            btn.onclick = () => {
+                if (!state.perksUsed.includes('relentless')) {
+                    ['infantry', 'cavalry', 'artillery'].forEach(type => {
+                        if (state.playerUnits[type] > 0) {
+                            const maxHealth = state.playerUnits[type] * 100;
+                            state.playerHealth[type] = Math.min(maxHealth, state.playerHealth[type] + maxHealth * 0.2);
+                        }
+                    });
+
+                    const oldThreshold = game.retreatThreshold;
+                    game.retreatThreshold = 0;
+                    state.perksUsed.push('relentless');
+                    btn.disabled = true;
+                    btn.textContent = '🛡️ Used';
+                    addBattleLog('LAST STAND! All units rally (+20% HP, no retreat)', 'event');
+                    AudioManager.playSFX('sfx-success', 0.7);
+                }
+            };
+            container.appendChild(btn);
         }
     });
+}
+
+function callBattleReinforcements(state) {
+    if (!hasResources(300)) {
+        addBattleLog('Not enough resources for reinforcements!', 'event');
+        return;
     }
+
+    spendResources(300);
+
+    state.playerUnits.infantry += 2;
+    state.playerUnits.cavalry += 1;
+    state.playerHealth.infantry += 200;
+    state.playerHealth.cavalry += 100;
+
+    document.querySelector(`#player-side .unit-group[data-type="infantry"] .unit-count`).textContent = state.playerUnits.infantry;
+    document.querySelector(`#player-side .unit-group[data-type="cavalry"] .unit-count`).textContent = state.playerUnits.cavalry;
+
+    addBattleLog('REINFORCEMENTS ARRIVED! +2 Infantry, +1 Cavalry', 'event');
+    AudioManager.playSFX('sfx-success', 0.6);
 }
 
 function convertTribalCity(tribal) {
@@ -5220,10 +5753,6 @@ function updateUI() {
 
     document.addEventListener('keydown', (e) => {
         if (game.ddrActive) {
-            if (['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'].includes(e.key)) {
-                e.preventDefault();
-                handleDDRInput(e.key);
-            }
         } else if (e.key === 'Escape') {
             cancelCityPlacement();
             game.buildingRoad = false;
