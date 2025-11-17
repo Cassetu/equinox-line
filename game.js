@@ -261,7 +261,7 @@ const game = {
     activeArmyMovements: []
 };
 
-
+let playerTribalRoads = [];
 let usedNames = [];
 let cityIdCounter = 0, roadIdCounter = 0, tribalIdCounter = 0, gameLoop;
 let mapZoom = 1.0;
@@ -1339,6 +1339,7 @@ function startGame() {
     });
 
     document.getElementById('planet-view').querySelectorAll('.city, .tribal-city, .road, .tribal-road, .army-arrow').forEach(el => el.remove());
+    playerTribalRoads = [];
     document.getElementById('messages').innerHTML = '';
 
     generateTerrainElements();
@@ -1385,14 +1386,23 @@ function startGame() {
     `;
     cityEl.onclick = (e) => {
         e.stopPropagation();
-        if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== startingCity.id) {
-            createRoad(game.roadStartCity, startingCity);
+        if (game.buildingRoad && game.roadStartCity) {
+            if (game.roadStartCity.id === city.id) {
+                selectCity(city);
+                return;
+            }
+
+            if (game.selectedType === 'tribal') {
+                createPlayerTribalRoad(game.roadStartCity, city);
+            } else {
+                createRoad(game.roadStartCity, city);
+            }
             game.buildingRoad = false;
             game.roadStartCity = null;
             document.getElementById('build-road-btn').classList.remove('active');
             updateRoadButtonText();
         } else {
-            selectCity(startingCity);
+            selectCity(city);
         }
     };
 
@@ -2051,7 +2061,7 @@ function beginBattle() {
     });
 
     const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
-    const tribal = game.currentBattle;
+
     attackingCities.forEach(city => {
         createMarchingArmy(city, tribal, true);
     });
@@ -2076,15 +2086,23 @@ function beginBattle() {
     game.battleMorale = Math.floor(avgHappiness);
 
     const maxDistance = Math.max(...attackingCities.map(city =>
-    Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
+        Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
     ));
-    const maxUnits = Math.max(...attackingCities.map(city =>
-    city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery
-    ));
-    const travelTime = Math.max(2000, Math.min(7000, maxDistance * 80 + maxUnits * 100));
+
+    const totalTroops = attackingCities.reduce((sum, city) =>
+        sum + city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery, 0
+    );
+
+    const yearInMs = 10000;
+    const baseTime = maxDistance * 200;
+    const armySizeMultiplier = 1 + (totalTroops * 0.15);
+    const travelTime = Math.max(yearInMs, baseTime * armySizeMultiplier);
+
+    addMessage(`Armies marching... ETA: ${Math.ceil(travelTime / yearInMs)} year(s)`, 'info');
 
     setTimeout(() => {
-    startEnhancedDDRBattle(tribal);
+        addMessage('Armies have arrived! Battle begins!', 'warning');
+        startEnhancedDDRBattle(tribal);
     }, travelTime);
 }
 
@@ -2173,7 +2191,7 @@ const activeTribals = game.tribalCities.filter(t => !t.isConverted);
 if (activeTribals.length === 0) return;
 
 activeTribals.forEach(tribal => {
-tribal.population += 0.2;
+tribal.population = Math.min(tribal.maxPopulation || 750, tribal.population + 0.2);
 
 const totalUnits = tribal.units.infantry + tribal.units.cavalry + tribal.units.artillery;
 
@@ -3154,6 +3172,7 @@ attackersInRange.forEach((attacker, index) => {
             const el = document.getElementById(`city-${target.id}`);
             if (el) el.remove();
             game.cities = game.cities.filter(c => c.id !== target.id);
+
             game.roads = game.roads.filter(road => {
                 if (road.from === target.id || road.to === target.id) {
                     const roadEl = document.getElementById(`road-${road.id}`);
@@ -3162,10 +3181,16 @@ attackersInRange.forEach((attacker, index) => {
                 }
                 return true;
             });
-        } else if (index === attackersInRange.length - 1) {
-            addMessage(`${target.name} survived the assault!`, 'success');
-            addMessage(`Survivors: ${Math.floor(target.population)}/${target.maxPopulation}`, 'info');
-            updateCityDisplay(target);
+
+            playerTribalRoads = playerTribalRoads.filter(road => {
+                if (road.cityId === target.id) {
+                    const roadEl = document.getElementById(`player-tribal-road-${road.id}`);
+                    if (roadEl) roadEl.remove();
+                    addMessage(`Road to ${attacker.name} destroyed!`, 'danger');
+                    return false;
+                }
+                return true;
+            });
         }
     }, 3000);
 });
@@ -3389,8 +3414,8 @@ function startRoadBuilding() {
         addMessage('Select a city first!', 'warning');
         return;
     }
-    if (game.selectedType === 'tribal') {
-        addMessage('Cannot build roads from tribal cities!', 'warning');
+    if (game.selectedType === 'tribal' && game.tribalRelation !== 'allied') {
+        addMessage('Must be allied with tribes to build roads to their cities!', 'warning');
         return;
     }
     if (!hasResources({food: 0, metal: 100, energy: 50})) {
@@ -3402,7 +3427,12 @@ function startRoadBuilding() {
     game.roadStartCity = game.selectedCity;
     document.getElementById('build-road-btn').classList.add('active');
     document.getElementById('build-city-btn').classList.remove('active');
-    addMessage(`Building road from ${game.selectedCity.name}. Click another city.`, 'info');
+
+    if (game.selectedType === 'tribal') {
+        addMessage(`Building road from ${game.selectedCity.name}. Click one of your cities.`, 'info');
+    } else {
+        addMessage(`Building road from ${game.selectedCity.name}. Click another city.`, 'info');
+    }
     updateRoadButtonText();
 }
 
@@ -3428,8 +3458,8 @@ function generateTribalCities() {
         const tribal = {
             id: tribalIdCounter++,
             name: name,
-            x, y, population: 300, isConverted: false,
-            units: { infantry: 1, cavalry: 1, artillery: 0 }
+            x, y, population: 250, maxPopulation: 750, isConverted: false,
+            units: { infantry: 0, cavalry: 1, artillery: 1 }
         };
 
         game.tribalCities.push(tribal);
@@ -3437,28 +3467,116 @@ function generateTribalCities() {
     }
 }
 
-    function createTribalCityElement(tribal) {
-        const el = document.createElement('div');
-        el.className = 'tribal-city';
-        el.id = `tribal-${tribal.id}`;
-        el.style.left = `${tribal.x}%`;
-        el.style.top = `${tribal.y}%`;
-        el.style.transform = 'translate(-50%, -50%)';
-        el.innerHTML = `<div class="tribal-label">${tribal.name}</div><div class="tribal-city-icon"></div>`;
-el.onclick = (e) => {
-e.stopPropagation();
-if (game.buildingRoad) {
-    addMessage('Cannot build roads to tribal cities!', 'warning');
-    game.buildingRoad = false;
-    game.roadStartCity = null;
-    document.getElementById('build-road-btn').classList.remove('active');
-    return;
+function createTribalCityElement(tribal) {
+    const el = document.createElement('div');
+    el.className = 'tribal-city';
+    el.id = `tribal-${tribal.id}`;
+    el.style.left = `${tribal.x}%`;
+    el.style.top = `${tribal.y}%`;
+    el.style.transform = 'translate(-50%, -50%)';
+    el.innerHTML = `<div class="tribal-label">${tribal.name}</div><div class="tribal-city-icon"></div>`;
+    el.onclick = (e) => {
+        e.stopPropagation();
+        if (game.buildingRoad && game.roadStartCity) {
+            if (game.tribalRelation !== 'allied') {
+                addMessage('Must be allied to build roads to tribal cities!', 'warning');
+                return;
+            }
+
+            if (tribal.isConverted) {
+                addMessage('This city is already yours!', 'warning');
+                return;
+            }
+
+            createPlayerTribalRoad(game.roadStartCity, tribal);
+            game.buildingRoad = false;
+            game.roadStartCity = null;
+            document.getElementById('build-road-btn').classList.remove('active');
+            updateRoadButtonText();
+        } else {
+            selectTribalCity(tribal);
+        }
+    };
+    document.getElementById('planet-view').appendChild(el);
+    setTimeout(() => updateTribalUnitIcons(tribal), 100);
 }
-selectTribalCity(tribal);
-};
-        document.getElementById('planet-view').appendChild(el);
-setTimeout(() => updateTribalUnitIcons(tribal), 100);
+
+function createPlayerTribalRoad(city, tribal) {
+    const distance = Math.sqrt(Math.pow(city.x - tribal.x, 2) + Math.pow(city.y - tribal.y, 2));
+    const distMult = distance > 20 ? 1.5 : 1;
+
+    const roadCost = {
+        metal: Math.floor(100 * distMult * (1 - TechTree.getTechBonus('roadCost'))),
+        energy: Math.floor(50 * distMult * (1 - TechTree.getTechBonus('roadCost')))
+    };
+
+    if (!hasResources(roadCost)) {
+        addMessage(`Road costs ${roadCost.metal}M, ${roadCost.energy}E at this distance!`, 'warning');
+        return;
     }
+
+    const exists = playerTribalRoads.some(r =>
+        (r.cityId === city.id && r.tribalId === tribal.id) ||
+        (r.cityId === city.id && r.tribalId === tribal.id)
+    );
+
+    if (exists) {
+        addMessage('Road already exists!', 'warning');
+        return;
+    }
+
+    const road = {
+        id: roadIdCounter++,
+        cityId: city.id,
+        tribalId: tribal.id,
+        cityX: city.x,
+        cityY: city.y,
+        tribalX: tribal.x,
+        tribalY: tribal.y
+    };
+
+    playerTribalRoads.push(road);
+    spendResources(roadCost);
+
+    const roadEl = document.createElement('div');
+    roadEl.className = `road ${getRoadStyleClass()} player-tribal-road`;
+    roadEl.id = `player-tribal-road-${road.id}`;
+    roadEl.style.opacity = '0.8';
+
+    updatePlayerTribalRoadPosition(roadEl, road);
+    document.getElementById('planet-view').appendChild(roadEl);
+
+    setTimeout(() => {
+        createRoadTraffic(roadEl, road.id);
+    }, 500);
+
+    addMessage(`Allied road built: ${city.name} ↔ ${tribal.name}!`, 'success');
+    AudioManager.playSFX('sfx-success', 0.6);
+}
+
+function updatePlayerTribalRoadPosition(roadEl, road) {
+    const planetView = document.getElementById('planet-view');
+    const rect = planetView.getBoundingClientRect();
+    const aspectRatio = rect.height / rect.width;
+
+    const citySize = 20;
+
+    const x1 = road.cityX;
+    const y1 = road.cityY;
+    const x2 = road.tribalX;
+    const y2 = road.tribalY * aspectRatio;
+
+    const dx = x2 - x1;
+    const dy = y2 - (y1 * aspectRatio);
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+    roadEl.style.left = `${x1}%`;
+    roadEl.style.top = `${y1}%`;
+    roadEl.style.width = `${length}%`;
+    roadEl.style.transform = `translate(${citySize}px, ${citySize}px) rotate(${angle}deg)`;
+    roadEl.style.transformOrigin = '0 0';
+}
 
 function selectTribalCity(tribal) {
 game.selectedCity = tribal;
@@ -3578,7 +3696,24 @@ function createMarchingArmy(fromEntity, toEntity, isPlayerArmy) {
         totalUnits = units.infantry + units.cavalry + units.artillery;
     }
 
-    const travelTime = Math.max(2000, Math.min(5000, distance * 80 + totalUnits * 100));
+    const yearInMs = 10000;
+    const baseTime = distance * 200;
+    const armySizeMultiplier = 1 + (totalUnits * 0.15);
+
+    let roadSpeedBonus = 1.0;
+    if (isPlayerArmy) {
+        const hasRoadConnection = playerTribalRoads.some(road =>
+            (road.cityId === fromEntity.id && road.tribalId === toEntity.id) ||
+            (road.tribalId === toEntity.id && game.cities.some(c => c.id === road.cityId))
+        );
+
+        if (hasRoadConnection) {
+            roadSpeedBonus = 0.5;
+            addMessage(`Army using road - march time halved!`, 'success');
+        }
+    }
+
+    const travelTime = Math.max(yearInMs, baseTime * armySizeMultiplier * roadSpeedBonus);
 
     const armyMovement = {
         id: Date.now() + Math.random(),
@@ -5317,6 +5452,25 @@ function convertTribalCity(tribal) {
     };
 
     game.cities.push(city);
+    playerTribalRoads.forEach(road => {
+        if (road.tribalId === tribal.id) {
+            const normalRoad = {
+                id: roadIdCounter++,
+                from: road.cityId,
+                to: city.id
+            };
+            game.roads.push(normalRoad);
+
+            const roadEl = document.getElementById(`player-tribal-road-${road.id}`);
+            if (roadEl) {
+                roadEl.id = `road-${normalRoad.id}`;
+                roadEl.classList.remove('player-tribal-road');
+                roadEl.style.opacity = '1';
+            }
+        }
+    });
+
+    playerTribalRoads = playerTribalRoads.filter(road => road.tribalId !== tribal.id);
 
     const cityEl = document.createElement('div');
     cityEl.className = `city city-${city.zoneType}${city.specialization !== 'none' ? ' city-' + city.specialization : ''}`;
@@ -5454,8 +5608,8 @@ function tribalBuildCity() {
     const tribal = {
         id: tribalIdCounter++,
         name: name,
-        x, y, population: 250, isConverted: false,
-        units: { infantry: 0, cavalry: 2, artillery: 1 }
+        x, y, population: 340, maxPopulation: 750, isConverted: false,
+        units: { infantry: 1, cavalry: 1, artillery: 0 }
     };
 
     game.tribalCities.push(tribal);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>Equinox Line - V1.2.1</title>
+    <title>Equinox Line - V1.3</title>
     <link rel="icon" type="image/png" href="images/icon.png">
     <link href="style.css" rel="stylesheet"/>
 </head>
@@ -470,7 +470,7 @@
         <ul>
             <li><strong>Placement:</strong> Costs 200F, 200M, 100E base (more if far from cities). Must be 5% apart</li>
             <li><strong>Population:</strong> Grows in habitable zone (0.5/tick base), dies outside zone rapidly</li>
-            <li><strong>Max Population:</strong> Starts at 500, increases with Housing tech</li>
+            <li><strong>Max Population:</strong> Your cities: 500 base, tribal cities: 750 max</li>
             <li><strong>Happiness (0-100):</strong> Cities at 0 happiness REBEL and stop producing!</li>
             <li><strong>Rebellion:</strong> Conquered tribal cities rebel for 30 seconds, produce 70% resources</li>
         </ul>
@@ -535,7 +535,10 @@
             <li><strong>Cost:</strong> 100M, 50E base (more for distant cities)</li>
             <li><strong>Bonus per connection:</strong> 1 = +20% resources | 2 = +35% | 3+ = +50%</li>
             <li><strong>Network happiness bonus:</strong> Multiple connections add happiness/year (see above)</li>
-            <li><strong>Connected cities:</strong> Can send reinforcements during battles</li>
+            <li><strong>Allied tribal roads:</strong> When allied, you can build roads to tribal cities!</li>
+            <li><strong>Road combat bonus:</strong> Armies march 50% FASTER on roads during war</li>
+            <li><strong>Road conversion:</strong> Conquer tribal city = road becomes yours automatically</li>
+            <li><strong>Road destruction:</strong> If tribals conquer your city, roads to it are destroyed</li>
             <li><strong>Visual indicator:</strong> Cities with 3+ connections show a pulsing green beacon</li>
         </ul>
 
@@ -593,24 +596,86 @@
             <li><strong>Tribal alarm:</strong> Building 11+ of any unit type costs -10 tribal reputation</li>
         </ul>
 
-        <h3>🎯 Combat System (DDR Battles):</h3>
+        <h3>🎯 NEW Combat System - Real-Time Tactical Battles:</h3>
         <ul>
             <li><strong>Battle Planning Screen:</strong>
                 <ul>
-                    <li>Shows power ratio, distance penalty, morale modifier</li>
+                    <li>Shows power ratio, distance penalty, morale modifier, risk assessment</li>
                     <li>Choose formation: Offensive (+20% ATK/-10% DEF), Balanced, Defensive (-10% ATK/+20% DEF)</li>
-                    <li>Set retreat threshold: 0%, 25%, 50%, 75% casualties</li>
-                    <li>Scout enemy (50 res) to reveal exact forces</li>
+                    <li>Set retreat threshold: 0%, 25%, 50%, 75% casualties to auto-retreat</li>
+                    <li>Scout enemy (50 res) to reveal exact forces before battle</li>
                     <li>Select Commander Perks (unlock by winning battles)</li>
+                    <li>Multi-city attacks: Select multiple cities to combine forces!</li>
                 </ul>
             </li>
-            <li><strong>DDR Minigame:</strong> Press arrow keys when highlighted (15 seconds)</li>
-            <li><strong>Combo system:</strong> Each hit = +10% damage (max +100%!)</li>
-            <li><strong>Reinforcements:</strong> Call during battle if connected to supply lines (300 res)</li>
-            <li><strong>Weather effects:</strong> Fog (late arrows), Sandstorm (vanishing arrows), Frost (slower)</li>
-            <li><strong>Battle phases:</strong> Artillery → Cavalry → Infantry (affects difficulty)</li>
-            <li><strong>Casualties:</strong> Both sides lose units based on damage dealt</li>
-            <li><strong>Retreat:</strong> If threshold reached, save 50% of units that would die</li>
+            <li><strong>March Phase (NEW!):</strong>
+                <ul>
+                    <li>Armies visually march across the map - watch them move!</li>
+                    <li>Base march time: ~1 game year minimum</li>
+                    <li>Larger armies march SLOWER: +15% time per unit</li>
+                    <li>Road bonus: Armies on allied roads march 50% FASTER!</li>
+                    <li>Distance matters: Farther targets = longer marches</li>
+                    <li>Battle doesn't start until armies arrive at target</li>
+                </ul>
+            </li>
+            <li><strong>Real-Time Battle Controls:</strong>
+                <ul>
+                    <li>Give orders to each unit type independently</li>
+                    <li>⬆️ Advance: +30% ATK, -20% DEF - Push forward aggressively</li>
+                    <li>🛡️ Hold: +40% DEF, -10% ATK - Defend your position</li>
+                    <li>🎯 Focus Fire: +50% ATK, -40% DEF - All-out attack, risky!</li>
+                    <li>Priority targeting: Choose which enemy units to focus</li>
+                    <li>Weather effects: Fog (late visibility), Sandstorm (units vanish), Frost (slowed)</li>
+                </ul>
+            </li>
+            <li><strong>Battle Phases:</strong>
+                <ul>
+                    <li>Phase 1: Initial engagement (0-20 seconds)</li>
+                    <li>Phase 2: Frontline clash (20-50 seconds)</li>
+                    <li>Phase 3: Desperate struggle (50-90 seconds)</li>
+                    <li>Each phase gets more intense!</li>
+                </ul>
+            </li>
+            <li><strong>Morale System:</strong>
+                <ul>
+                    <li>Based on average city happiness (0-100)</li>
+                    <li>High morale = more damage dealt</li>
+                    <li>Losing combo or taking damage reduces morale</li>
+                    <li>Commander perk "Inspiration" boosts damage at high morale</li>
+                </ul>
+            </li>
+            <li><strong>Commander Perks (Unlock by Winning):</strong>
+                <ul>
+                    <li>Level 1: Veteran Troops - Start with +2 combo, +20% HP</li>
+                    <li>Level 2: Swift Strike - Activate to double attack speed for 10s</li>
+                    <li>Level 3: Defensive Genius - Take 25% less damage</li>
+                    <li>Level 4: Relentless - First miss doesn't break combo</li>
+                    <li>Level 5: Inspiration - High morale boosts damage by 15%</li>
+                </ul>
+            </li>
+            <li><strong>Reinforcements:</strong>
+                <ul>
+                    <li>Call during battle if connected to supply lines (300 res)</li>
+                    <li>Adds +2 Infantry, +1 Cavalry instantly</li>
+                    <li>Only works if you have connected cities nearby</li>
+                </ul>
+            </li>
+            <li><strong>Casualties & Retreat:</strong>
+                <ul>
+                    <li>Both sides lose units based on damage dealt</li>
+                    <li>Survivors return to your cities (distributed among attackers)</li>
+                    <li>Auto-retreat saves units when threshold reached</li>
+                    <li>Total defeat = lose all attacking forces</li>
+                </ul>
+            </li>
+            <li><strong>Tribal Reinforcements (NEW!):</strong>
+                <ul>
+                    <li>Nearby tribal cities (within 25%) send reinforcements!</li>
+                    <li>Up to 2 infantry, 1 cavalry, 1 artillery per ally</li>
+                    <li>Max 8 units per tribal city (capacity limit)</li>
+                    <li>Makes isolated attacks easier than hitting tribal clusters</li>
+                </ul>
+            </li>
         </ul>
 
         <h3>👥 Tribal Diplomacy (COMPLEX!):</h3>
@@ -621,13 +686,14 @@
                     <li>21-40: Hostile - Unfriendly, won't trade</li>
                     <li>41-60: Neutral - Trade available</li>
                     <li>61-80: Friendly - Better trade deals</li>
-                    <li>81-100: Allied - Can achieve Diplomatic Victory</li>
+                    <li>81-100: Allied - Can build roads to tribal cities, achieve Diplomatic Victory</li>
                 </ul>
             </li>
             <li><strong>Actions & Effects:</strong>
                 <ul>
                     <li>Trade (80F → 80M): +10 rep, 10-year cooldown</li>
                     <li>Embassy (200F, 200M, 100E): +20 rep, one-time</li>
+                    <li>Build roads to tribals: Only when allied, gives march speed bonus in war</li>
                     <li>Denounce: -30 rep</li>
                     <li>Declare War: Set rep to 0, all cities lose 25 happiness</li>
                     <li>Building too close (within 10%): -10 rep per city</li>
@@ -657,7 +723,7 @@
         <h3>🏛️ Tribal Behavior:</h3>
         <ul>
             <li><strong>Expansion:</strong> Build roads every 10 years, new cities every 30-40 years</li>
-            <li><strong>Population:</strong> Grows slowly (+0.2/tick)</li>
+            <li><strong>Population:</strong> Grows slowly (+0.2/tick), max 750 per city</li>
             <li><strong>Military recruitment:</strong>
                 <ul>
                     <li>Peacetime: 0.3% chance/tick (max 3 recruits/year)</li>
@@ -668,6 +734,24 @@
             <li><strong>Reinforcements:</strong> Nearby tribal cities (within 25%) send troops to defend attacked cities</li>
             <li><strong>Counterattacks:</strong> During war, randomly attack your weakest cities</li>
             <li><strong>Max capacity:</strong> 8 units per tribal city (like your cities)</li>
+        </ul>
+
+        <h3>🏛️ Wonders of the World:</h3>
+        <ul>
+            <li><strong>Build powerful wonders near your cities for huge bonuses</strong></li>
+            <li><strong>Must be connected by road to work!</strong> Disconnected wonders are inactive</li>
+            <li><strong>Available Wonders:</strong>
+                <ul>
+                    <li>📚 Great Library: Doubles research point generation</li>
+                    <li>🛡️ Planetary Defense Grid: +25% defense to all cities</li>
+                    <li>🗂️ Grand Archive: Reveals all tribal forces permanently</li>
+                    <li>🗿 Monument of Unity: +15 happiness/year to all cities</li>
+                    <li>🏭 Mega Factory: +30% metal and energy production</li>
+                    <li>🌺 Garden of Life: +40% food, +20% population growth</li>
+                    <li>⭐ Supreme Command: +20% unit attack, units cost 20% less</li>
+                    <li>🌟 Cosmic Beacon: Spaceport construction 50% faster</li>
+                </ul>
+            </li>
         </ul>
 
         <h3>⚖️ City Laws (Global Effect):</h3>
@@ -699,16 +783,16 @@
         <h3>🎮 Controls & UI:</h3>
         <ul>
             <li><strong>ESC:</strong> Cancel placement/close panels</li>
-            <li><strong>Arrow Keys:</strong> DDR combat inputs</li>
             <li><strong>Click city:</strong> View info, recruit units, upgrade</li>
-            <li><strong>Click tribal:</strong> View info, attack if at war</li>
+            <li><strong>Click tribal:</strong> View info, attack if at war, build roads if allied</li>
             <li><strong>Drag map:</strong> Pan around the planet</li>
             <li><strong>Mouse wheel:</strong> Zoom in/out</li>
             <li><strong>+/- buttons:</strong> Zoom controls (bottom right)</li>
-            <li><strong>Minimap:</strong> Click to jump to location (top left)</li>
+            <li><strong>Minimap:</strong> Click to jump to location (top left), shows marching armies</li>
             <li><strong>🔊 Button:</strong> Toggle music (bottom right)</li>
             <li><strong>Victory button:</strong> Check progress toward all victory conditions</li>
             <li><strong>Research button:</strong> Open tech tree</li>
+            <li><strong>Wonders button:</strong> Build world wonders</li>
         </ul>
 
         <h3>💡 Pro Strategy Tips:</h3>
@@ -718,12 +802,16 @@
             <li><strong>Late game:</strong> Balance 3 resources for Spaceport, or build military for domination</li>
             <li><strong>Zone strategy:</strong> Build cities at 45-55% to maximize time in habitable zone</li>
             <li><strong>Food stockpiles:</strong> Keep cities near zone edges at 80-100 food for safety</li>
-            <li><strong>Tribal management:</strong> Stay friendly (60+ rep) until you're ready for war</li>
+            <li><strong>Tribal management:</strong> Stay allied (80+ rep) to build roads for tactical advantage</li>
             <li><strong>Military timing:</strong> Don't build 11+ units until ready to fight!</li>
+            <li><strong>March planning:</strong> Smaller armies march faster - consider multiple waves</li>
+            <li><strong>Road warfare:</strong> Build allied roads to tribal territory before war for speed bonus</li>
+            <li><strong>Multi-city attacks:</strong> Coordinate attacks from multiple cities for overwhelming force</li>
             <li><strong>Happiness crisis:</strong> Use Philanthropy + Relaxed Work law to prevent rebellions</li>
             <li><strong>Feature sharing:</strong> Spread cities out - don't cluster around same features</li>
             <li><strong>Defense:</strong> Station 2-4 units in vulnerable cities (more causes unhappiness)</li>
             <li><strong>Commander XP:</strong> Win battles to unlock powerful combat perks</li>
+            <li><strong>Wonder synergy:</strong> Supreme Command + Military cities = unstoppable army</li>
             <li><strong>Multiple victories:</strong> You can complete all 4 - choose your favorite to claim!</li>
         </ul>
 
@@ -733,10 +821,14 @@
             <li>Ignoring happiness (leads to rebellions)</li>
             <li>Building too close to tribals early (angers them)</li>
             <li>Not connecting cities with roads (miss huge bonuses)</li>
+            <li>Not building allied roads before declaring war (miss speed bonus)</li>
+            <li>Sending entire army in one march (slower + higher risk)</li>
+            <li>Attacking tribal clusters without scouting reinforcements</li>
             <li>Letting food stockpiles hit zero outside habitable zone</li>
             <li>Over-garrisoning cities (causes happiness penalties)</li>
             <li>Starting Spaceport construction without stable 3500+ population</li>
             <li>Declaring war without adequate military preparation</li>
+            <li>Building wonders without connecting them to road networks</li>
         </ul>
 
         <button onclick="startGame()" style="width: 100%; margin-top: 20px; padding: 12px; font-size: 14px;">Start Game</button>

@@ -1113,10 +1113,10 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
 
 .library-base {
     position: absolute;
-    bottom: 0;
+    bottom: 5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 24px;
+    width: 50px;
     height: 10px;
     background: linear-gradient(180deg, #87CEEB, #4682B4);
     border: 1px solid #4169E1;
@@ -2485,7 +2485,7 @@ button.active { background: #00ff00; color: #000; border-color: #00ff00; }
 
 .library-pillar {
     position: absolute;
-    bottom: 30px;
+    bottom: 15px;
     width: 6px;
     height: 35px;
     background: linear-gradient(180deg, #60A5FA, #3B82F6);
