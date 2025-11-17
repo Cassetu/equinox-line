@@ -398,6 +398,25 @@
     <div id="weather-indicator"></div>
     <div id="phase-indicator"></div>
 
+    <div id="army-approaching-notification" style="
+    position: fixed;
+    top: 120px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 3px solid #ff4400;
+    border-radius: 10px;
+    padding: 15px 20px;
+    z-index: 9999;
+    display: none;
+    animation: slideInRight 0.5s;
+">
+        <div style="font-size: 16px; font-weight: bold; color: #ff4400; margin-bottom: 5px;">
+            ⚔️ <span id="army-notification-text">Army Approaching!</span>
+        </div>
+        <div style="font-size: 12px; opacity: 0.8;" id="army-notification-detail">
+            Target: City Name
+        </div>
+    </div>
 
     <div id="peace-demand-popup"
          style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border: 3px solid #ffaa00; border-radius: 15px; padding: 30px; max-width: 600px; z-index: 9998; display: none; text-align: center;">

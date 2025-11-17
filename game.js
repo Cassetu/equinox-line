@@ -257,7 +257,8 @@ const game = {
     lastShownDemandIndex: -1,
     attackingCities: [],
     selectingAttackers: false,
-    targetTribal: null
+    targetTribal: null,
+    activeArmyMovements: []
 };
 
 
@@ -1333,7 +1334,8 @@ function startGame() {
         peaceDemands: [], currentPeaceDemand: null, peaceTreatyCooldown: 0, lastShownDemandIndex: -1,
         attackingCities: [],
         selectingAttackers: false,
-        targetTribal: null
+        targetTribal: null,
+        activeArmyMovements: []
     });
 
     document.getElementById('planet-view').querySelectorAll('.city, .tribal-city, .road, .tribal-road, .army-arrow').forEach(el => el.remove());
@@ -2012,75 +2014,77 @@ function beginBattle() {
     activeTribals.forEach(ally => {
     const distance = Math.sqrt(Math.pow(tribal.x - ally.x, 2) + Math.pow(tribal.y - ally.y, 2));
 
-if (distance < 25 && (ally.units.infantry > 2 || ally.units.cavalry > 1 || ally.units.artillery > 0)) {
-    const currentTotal = tribal.units.infantry + tribal.units.cavalry + tribal.units.artillery;
-    const spaceAvailable = Math.max(0, 8 - currentTotal);
+    if (distance < 25 && (ally.units.infantry > 2 || ally.units.cavalry > 1 || ally.units.artillery > 0)) {
+        const currentTotal = tribal.units.infantry + tribal.units.cavalry + tribal.units.artillery;
+        const spaceAvailable = Math.max(0, 8 - currentTotal);
 
-    if (spaceAvailable === 0) {
-        return;
-    }
+        if (spaceAvailable === 0) {
+            return;
+        }
 
-    const reinforceInf = Math.min(2, ally.units.infantry);
-    const reinforceCav = Math.min(1, ally.units.cavalry);
-    const reinforceArt = Math.min(1, ally.units.artillery);
+        const reinforceInf = Math.min(2, ally.units.infantry);
+        const reinforceCav = Math.min(1, ally.units.cavalry);
+        const reinforceArt = Math.min(1, ally.units.artillery);
 
-    const actualInf = Math.min(reinforceInf, spaceAvailable);
-    const actualCav = Math.min(reinforceCav, Math.max(0, spaceAvailable - actualInf));
-    const actualArt = Math.min(reinforceArt, Math.max(0, spaceAvailable - actualInf - actualCav));
+        const actualInf = Math.min(reinforceInf, spaceAvailable);
+        const actualCav = Math.min(reinforceCav, Math.max(0, spaceAvailable - actualInf));
+        const actualArt = Math.min(reinforceArt, Math.max(0, spaceAvailable - actualInf - actualCav));
 
-    ally.units.infantry -= actualInf;
-    ally.units.cavalry -= actualCav;
-    ally.units.artillery -= actualArt;
+        ally.units.infantry -= actualInf;
+        ally.units.cavalry -= actualCav;
+        ally.units.artillery -= actualArt;
 
-    tribal.units.infantry += actualInf;
-    tribal.units.cavalry += actualCav;
-    tribal.units.artillery += actualArt;
+        tribal.units.infantry += actualInf;
+        tribal.units.cavalry += actualCav;
+        tribal.units.artillery += actualArt;
 
-    const totalSent = actualInf + actualCav + actualArt;
-    const totalBlocked = (reinforceInf - actualInf) + (reinforceCav - actualCav) + (reinforceArt - actualArt);
+        const totalSent = actualInf + actualCav + actualArt;
+        const totalBlocked = (reinforceInf - actualInf) + (reinforceCav - actualCav) + (reinforceArt - actualArt);
 
-    if (totalSent > 0) {
-        addMessage(`${ally.name} sending ${totalSent} reinforcements to ${tribal.name}!`, 'danger');
-        if (totalBlocked > 0) {
-            addMessage(`${tribal.name} at capacity - ${totalBlocked} units couldn't reinforce`, 'warning');
+        if (totalSent > 0) {
+            addMessage(`${ally.name} sending ${totalSent} reinforcements to ${tribal.name}!`, 'danger');
+            if (totalBlocked > 0) {
+                addMessage(`${tribal.name} at capacity - ${totalBlocked} units couldn't reinforce`, 'warning');
+            }
         }
     }
-}
-});
+    });
 
-showArmyArrow(closestCity, tribal);
+    const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
+    attackingCities.forEach(city => {
+        createMarchingArmy(city, tribal, true);
+    });
 
-const zoneType = getZoneType(tribal.x);
-const weatherRoll = Math.random();
-let weatherIndex = 0;
+    const zoneType = getZoneType(tribal.x);
+    const weatherRoll = Math.random();
+    let weatherIndex = 0;
 
-if (zoneType === 'hot' && weatherRoll < 0.4) {
-    weatherIndex = 2;
-} else if (zoneType === 'cold' && weatherRoll < 0.4) {
-    weatherIndex = 3;
-} else if (weatherRoll < 0.3) {
-    weatherIndex = 1;
-} else {
-    weatherIndex = 0;
-}
+    if (zoneType === 'hot' && weatherRoll < 0.4) {
+        weatherIndex = 2;
+    } else if (zoneType === 'cold' && weatherRoll < 0.4) {
+        weatherIndex = 3;
+    } else if (weatherRoll < 0.3) {
+        weatherIndex = 1;
+    } else {
+        weatherIndex = 0;
+    }
 
-game.weatherEvent = WEATHER_EVENTS[weatherIndex];
+    game.weatherEvent = WEATHER_EVENTS[weatherIndex];
 
-const avgHappiness = game.cities.reduce((sum, c) => sum + c.happiness, 0) / game.cities.length;
-game.battleMorale = Math.floor(avgHappiness);
+    const avgHappiness = game.cities.reduce((sum, c) => sum + c.happiness, 0) / game.cities.length;
+    game.battleMorale = Math.floor(avgHappiness);
 
-const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [closestCity];
-const maxDistance = Math.max(...attackingCities.map(city =>
-Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
-));
-const maxUnits = Math.max(...attackingCities.map(city =>
-city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery
-));
-const travelTime = Math.max(2000, Math.min(5000, maxDistance * 80 + maxUnits * 100));
+    const maxDistance = Math.max(...attackingCities.map(city =>
+    Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
+    ));
+    const maxUnits = Math.max(...attackingCities.map(city =>
+    city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery
+    ));
+    const travelTime = Math.max(2000, Math.min(7000, maxDistance * 80 + maxUnits * 100));
 
-setTimeout(() => {
-startEnhancedDDRBattle(tribal);
-}, travelTime);
+    setTimeout(() => {
+    startEnhancedDDRBattle(tribal);
+    }, travelTime);
 }
 
 
@@ -3088,7 +3092,7 @@ addMessage(`${attackersInRange.length} tribal cities attacking your weakest city
 AudioManager.playSFX('sfx-alert', 0.8);
 
 attackersInRange.forEach((attacker, index) => {
-    showTribalAttackArrow(attacker, target);
+    createMarchingArmy(attacker, target, false);
 
     setTimeout(() => {
         const tribalAttack = attacker.units.infantry * 5 + attacker.units.cavalry * 12 + attacker.units.artillery * 20;
@@ -3163,85 +3167,6 @@ attackersInRange.forEach((attacker, index) => {
             updateCityDisplay(target);
         }
     }, 3000);
-});
-}
-
-function showTribalAttackArrow(fromTribal, toCity) {
-const totalUnits = fromTribal.units.infantry + fromTribal.units.cavalry + fromTribal.units.artillery;
-const distance = Math.sqrt(Math.pow(toCity.x - fromTribal.x, 2) + Math.pow(toCity.y - fromTribal.y, 2));
-const travelTime = Math.max(2000, Math.min(5000, distance * 80 + totalUnits * 100));
-
-const arrow = document.createElement('div');
-arrow.className = 'army-arrow';
-
-const fromEl = document.getElementById(`tribal-${fromTribal.id}`);
-const toEl = document.getElementById(`city-${toCity.id}`);
-if (!fromEl || !toEl) return;
-
-const rect1 = fromEl.getBoundingClientRect();
-const rect2 = toEl.getBoundingClientRect();
-const planetRect = document.getElementById('planet-view').getBoundingClientRect();
-
-const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-const y2 = rect2.top + rect2.height / 2 - planetRect.top;
-
-const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-
-arrow.innerHTML = `<div class="army-arrow-line" style="width: ${length}px; transform: rotate(${angle}deg); background: linear-gradient(to right, #ff0000, #ff0000 70%, transparent); box-shadow: 0 0 10px #ff0000;"><div class="army-arrow-head" style="border-left-color: #ff0000; filter: drop-shadow(0 0 5px #ff0000);"></div></div>`;
-arrow.style.left = `${x1}px`;
-arrow.style.top = `${y1}px`;
-
-document.getElementById('planet-view').appendChild(arrow);
-
-animateUnitsToTarget(fromTribal, toCity, x1, y1, x2, y2, travelTime, true);
-
-setTimeout(() => arrow.remove(), travelTime);
-}
-
-function animateUnitsToTarget(fromEntity, toEntity, x1, y1, x2, y2, duration, isTribalAttack) {
-const units = [];
-
-if (isTribalAttack) {
-    for (let i = 0; i < fromEntity.units.infantry; i++) units.push({ type: 'infantry', symbol: '⚔' });
-    for (let i = 0; i < fromEntity.units.cavalry; i++) units.push({ type: 'cavalry', symbol: '♞' });
-    for (let i = 0; i < fromEntity.units.artillery; i++) units.push({ type: 'artillery', symbol: '⚡' });
-} else {
-    for (let i = 0; i < fromEntity.stationedUnits.infantry; i++) units.push({ type: 'infantry', symbol: '⚔' });
-    for (let i = 0; i < fromEntity.stationedUnits.cavalry; i++) units.push({ type: 'cavalry', symbol: '♞' });
-    for (let i = 0; i < fromEntity.stationedUnits.artillery; i++) units.push({ type: 'artillery', symbol: '⚡' });
-}
-
-units.forEach((unit, index) => {
-    const unitEl = document.createElement('div');
-    unitEl.className = `traveling-unit unit-icon unit-icon-${unit.type}`;
-    unitEl.innerHTML = `
-        <div class="unit-icon-inner">
-            <div class="unit-icon-outer-ring"></div>
-            <div class="unit-icon-middle-layer"></div>
-            <div class="unit-icon-core">
-                <span class="unit-icon-symbol">${unit.symbol}</span>
-            </div>
-        </div>
-    `;
-
-    const offset = (index - units.length / 2) * 10;
-    unitEl.style.left = `${x1 + offset}px`;
-    unitEl.style.top = `${y1}px`;
-
-    document.getElementById('planet-view').appendChild(unitEl);
-
-    setTimeout(() => {
-        unitEl.style.transition = `all ${duration}ms linear`;
-        unitEl.style.left = `${x2 + offset}px`;
-        unitEl.style.top = `${y2}px`;
-    }, 50);
-
-    setTimeout(() => {
-        unitEl.remove();
-    }, duration + 100);
 });
 }
 
@@ -3608,43 +3533,187 @@ function getTotalDefense(city) {
            city.stationedUnits.artillery * UNIT_TYPES.artillery.defense;
 }
 
-    function showArmyArrow(fromCity, toTribal) {
-const attackingCities = game.attackingCities.length > 0 ? game.attackingCities : [fromCity];
+function createMarchingArmy(fromEntity, toEntity, isPlayerArmy) {
+    const fromEl = isPlayerArmy
+        ? document.getElementById(`city-${fromEntity.id}`)
+        : document.getElementById(`tribal-${fromEntity.id}`);
 
-attackingCities.forEach(city => {
-    const totalUnits = city.stationedUnits.infantry + city.stationedUnits.cavalry + city.stationedUnits.artillery;
-    const distance = Math.sqrt(Math.pow(toTribal.x - city.x, 2) + Math.pow(city.y - toTribal.y, 2));
-    const travelTime = Math.max(2000, Math.min(5000, distance * 80 + totalUnits * 100));
+    const toEl = toEntity.isConverted !== undefined
+        ? document.getElementById(`city-${toEntity.id}`)
+        : document.getElementById(`tribal-${toEntity.id}`);
 
-    const arrow = document.createElement('div');
-    arrow.className = 'army-arrow';
-
-    const fromEl = document.getElementById(`city-${city.id}`);
-    const toEl = document.getElementById(`tribal-${toTribal.id}`);
-    if (!fromEl || !toEl) return;
+    if (!fromEl || !toEl) {
+        console.log('Missing elements:', fromEl, toEl);
+        return;
+    }
 
     const rect1 = fromEl.getBoundingClientRect();
     const rect2 = toEl.getBoundingClientRect();
     const planetRect = document.getElementById('planet-view').getBoundingClientRect();
 
-    const x1 = rect1.left + rect1.width / 2 - planetRect.left;
-    const y1 = rect1.top + rect1.height / 2 - planetRect.top;
-    const x2 = rect2.left + rect2.width / 2 - planetRect.left;
-    const y2 = rect2.top + rect2.height / 2 - planetRect.top;
+    const startX = ((rect1.left + rect1.width / 2 - planetRect.left) / planetRect.width) * 100;
+    const startY = ((rect1.top + rect1.height / 2 - planetRect.top) / planetRect.height) * 100;
+    const endX = ((rect2.left + rect2.width / 2 - planetRect.left) / planetRect.width) * 100;
+    const endY = ((rect2.top + rect2.height / 2 - planetRect.top) / planetRect.height) * 100;
 
-    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
 
-    arrow.innerHTML = `<div class="army-arrow-line" style="width: ${length}px; transform: rotate(${angle}deg);"><div class="army-arrow-head"></div></div>`;
-    arrow.style.left = `${x1}px`;
-    arrow.style.top = `${y1}px`;
+    let units;
+    let totalUnits;
 
-    document.getElementById('planet-view').appendChild(arrow);
+    if (isPlayerArmy) {
+        units = {
+            infantry: fromEntity.stationedUnits.infantry,
+            cavalry: fromEntity.stationedUnits.cavalry,
+            artillery: fromEntity.stationedUnits.artillery
+        };
+        totalUnits = units.infantry + units.cavalry + units.artillery;
+    } else {
+        units = {
+            infantry: fromEntity.units.infantry,
+            cavalry: fromEntity.units.cavalry,
+            artillery: fromEntity.units.artillery
+        };
+        totalUnits = units.infantry + units.cavalry + units.artillery;
+    }
 
-    animateUnitsToTarget(city, toTribal, x1, y1, x2, y2, travelTime, false);
+    const travelTime = Math.max(2000, Math.min(5000, distance * 80 + totalUnits * 100));
 
-    setTimeout(() => arrow.remove(), travelTime);
-});
+    const armyMovement = {
+        id: Date.now() + Math.random(),
+        startX, startY,
+        endX, endY,
+        currentX: startX,
+        currentY: startY,
+        startTime: Date.now(),
+        duration: travelTime,
+        isPlayerArmy: isPlayerArmy,
+        units: units,
+        targetName: toEntity.name
+    };
+
+    if (!game.activeArmyMovements) game.activeArmyMovements = [];
+    game.activeArmyMovements.push(armyMovement);
+
+    createArmyVisuals(armyMovement);
+
+    setTimeout(() => {
+        game.activeArmyMovements = game.activeArmyMovements.filter(m => m.id !== armyMovement.id);
+        const container = document.getElementById(`army-${armyMovement.id}`);
+        if (container) container.remove();
+    }, travelTime);
+}
+
+function createArmyVisuals(movement) {
+    const container = document.createElement('div');
+    container.id = `army-${movement.id}`;
+    container.className = 'marching-army-container';
+    container.style.cssText = `
+        position: absolute;
+        left: ${movement.startX}%;
+        top: ${movement.startY}%;
+        transform: translate(-50%, -50%);
+        z-index: 50;
+        transition: none;
+    `;
+
+    const unitOrder = ['infantry', 'cavalry', 'artillery'];
+    let offset = 0;
+
+    unitOrder.forEach(unitType => {
+        const count = movement.units[unitType];
+        for (let i = 0; i < count; i++) {
+            const unitIcon = document.createElement('div');
+            unitIcon.className = 'marching-unit-icon';
+
+            const symbol = unitType === 'infantry' ? '⚔' : (unitType === 'cavalry' ? '♞' : '⚡');
+            let color;
+            if (movement.isPlayerArmy) {
+                color = unitType === 'infantry' ? '#4CAF50' : (unitType === 'cavalry' ? '#2196F3' : '#FF9800');
+            } else {
+                color = unitType === 'infantry' ? '#DC143C' : (unitType === 'cavalry' ? '#FF4500' : '#FF6347');
+            }
+
+            unitIcon.innerHTML = `
+                <div class="unit-icon-inner">
+                    <div class="unit-icon-outer-ring" style="border-color: ${color}; background: ${color};"></div>
+                    <div class="unit-icon-core">
+                        <span class="unit-icon-symbol">${symbol}</span>
+                    </div>
+                </div>
+            `;
+
+            unitIcon.style.left = `${offset * -8}px`;
+            unitIcon.style.animationDelay = `${i * 0.1}s`;
+            container.appendChild(unitIcon);
+            offset++;
+        }
+    });
+
+    for (let i = 0; i < Math.min(5, offset); i++) {
+        const soldier = document.createElement('div');
+        soldier.className = 'marching-soldier';
+        soldier.textContent = ['🚶', '🚶‍♂️', '🚶‍♀️'][i % 3];
+        soldier.style.left = `${(offset * -8) - 20 - (i * 10)}px`;
+        soldier.style.animationDelay = `${i * 0.15}s`;
+        container.appendChild(soldier);
+    }
+
+    const flag = document.createElement('div');
+    flag.className = 'army-flag';
+    flag.textContent = movement.isPlayerArmy ? '🚩' : '🏴';
+    flag.style.left = `${10}px`;
+    container.appendChild(flag);
+
+    document.getElementById('planet-view').appendChild(container);
+
+    animateArmyMovement(movement, container);
+}
+
+function animateArmyMovement(movement, container) {
+    const animate = () => {
+        const elapsed = Date.now() - movement.startTime;
+        const progress = Math.min(elapsed / movement.duration, 1);
+
+        movement.currentX = movement.startX + (movement.endX - movement.startX) * progress;
+        movement.currentY = movement.startY + (movement.endY - movement.startY) * progress;
+
+        container.style.left = `${movement.currentX}%`;
+        container.style.top = `${movement.currentY}%`;
+
+        const angle = Math.atan2(movement.endY - movement.startY, movement.endX - movement.startX) * 180 / Math.PI;
+        container.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+
+        if (progress < 0.9) {
+            requestAnimationFrame(animate);
+        } else if (progress >= 0.9 && !movement.notificationShown) {
+            movement.notificationShown = true;
+            showArmyApproachingNotification(movement);
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        }
+    };
+
+    requestAnimationFrame(animate);
+}
+
+function showArmyApproachingNotification(movement) {
+    const notification = document.getElementById('army-approaching-notification');
+    const textEl = document.getElementById('army-notification-text');
+    const detailEl = document.getElementById('army-notification-detail');
+
+    textEl.textContent = movement.isPlayerArmy ? 'Your Army Approaching!' : '⚠️ Enemy Army Approaching!';
+    detailEl.textContent = `Target: ${movement.targetName}`;
+
+    notification.style.borderColor = movement.isPlayerArmy ? '#00ff00' : '#ff4400';
+    textEl.style.color = movement.isPlayerArmy ? '#00ff00' : '#ff4400';
+    notification.style.display = 'block';
+
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
 }
 
     function attackTribalCity(tribalId) {
@@ -4920,6 +4989,17 @@ function updateMinimap() {
             minimap.appendChild(dot);
         }
     });
+
+    if (game.activeArmyMovements) {
+        game.activeArmyMovements.forEach(movement => {
+            const armyDot = document.createElement('div');
+            armyDot.className = 'minimap-army';
+            armyDot.style.left = `${movement.currentX}%`;
+            armyDot.style.top = `${movement.currentY}%`;
+            armyDot.style.background = movement.isPlayerArmy ? '#00ff00' : '#ff4400';
+            minimap.appendChild(armyDot);
+        });
+    }
 
     const mainGame = document.getElementById('main-game');
     const rect = mainGame.getBoundingClientRect();
