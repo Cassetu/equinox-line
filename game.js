@@ -135,32 +135,32 @@ const GOVERNOR_TYPES = {
 };
 
 const LAWS = {
-        none: { name: 'No Special Laws', resourceBonus: 0, happinessPenalty: 0 },
-        productive: { name: 'Increased Production', resourceBonus: 0.5, happinessPenalty: -1 },
-        efficient: { name: 'Efficiency Standards', resourceBonus: 0.3, happinessPenalty: -0.5 },
-        harsh: { name: 'Harsh Labor Laws', resourceBonus: 1.0, happinessPenalty: -2 },
-        relaxed: { name: 'Relaxed Work Schedule', resourceBonus: -0.2, happinessPenalty: 1 }
-    };
+    none: { name: 'No Special Laws', resourceBonus: 0, happinessPenalty: 0 },
+    productive: { name: 'Increased Production', resourceBonus: 0.5, happinessPenalty: -1 },
+    efficient: { name: 'Efficiency Standards', resourceBonus: 0.3, happinessPenalty: -0.5 },
+    harsh: { name: 'Harsh Labor Laws', resourceBonus: 1.0, happinessPenalty: -2 },
+    relaxed: { name: 'Relaxed Work Schedule', resourceBonus: -0.2, happinessPenalty: 1 }
+};
 
 const PERKS = {
-veteranTroops: { name: 'Veteran Troops', description: 'Start with +2 combo', level: 1, effect: 'combo' },
-swiftStrike: { name: 'Swift Strike', description: 'First 5 arrows 30% slower', level: 2, effect: 'slow' },
-defensiveGenius: { name: 'Defensive Genius', description: 'Take 25% less damage', level: 3, effect: 'defense' },
-relentless: { name: 'Relentless', description: 'First miss doesn\'t break combo', level: 4, effect: 'forgive' },
-inspiration: { name: 'Inspiration', description: 'High morale boosts damage', level: 5, effect: 'morale' }
+    veteranTroops: { name: 'Veteran Troops', description: 'Start with +2 combo', level: 1, effect: 'combo' },
+    swiftStrike: { name: 'Swift Strike', description: 'Get an blitz ability that makes you attack 2 times faster', level: 2, effect: 'slow' },
+    defensiveGenius: { name: 'Defensive Genius', description: 'Take 25% less damage', level: 3, effect: 'defense' },
+    relentless: { name: 'Relentless', description: 'First miss doesn\'t break combo', level: 4, effect: 'forgive' },
+    inspiration: { name: 'Inspiration', description: 'High morale boosts damage', level: 5, effect: 'morale' }
 };
 
 const FORMATIONS = {
-offensive: { atkMod: 1.2, defMod: 0.9 },
-balanced: { atkMod: 1.0, defMod: 1.0 },
-defensive: { atkMod: 0.9, defMod: 1.2 }
+    offensive: { atkMod: 1.2, defMod: 0.9 },
+    balanced: { atkMod: 1.0, defMod: 1.0 },
+    defensive: { atkMod: 0.9, defMod: 1.2 }
 };
 
 const WEATHER_EVENTS = [
-{ name: '☀️ Clear Skies', effect: 'easy', description: 'Perfect visibility' },
-{ name: '🌫️ Fog of War', effect: 'late', description: 'Arrows appear late' },
-{ name: '🌪️ Sandstorm', effect: 'vanish', description: 'Arrows vanish briefly' },
-{ name: '❄️ Frost', effect: 'slow', description: 'Everything slows down' }
+    { name: '☀️ Clear Skies', effect: 'easy', description: 'Perfect visibility' },
+    { name: '🌫️ Fog of War', effect: 'late', description: 'Arrows appear late' },
+    { name: '🌪️ Sandstorm', effect: 'vanish', description: 'Arrows vanish briefly' },
+    { name: '❄️ Frost', effect: 'slow', description: 'Everything slows down' }
 ];
 
 const RESOURCE_TYPES = {
@@ -186,25 +186,25 @@ const PEACE_DEMANDS = [
     }
 },
 {
-id: 'military',
-text: 'Your military threatens us. Disband 30% of your forces.',
-consequence: 'You will lose 30% of all units',
-check: () => {
+    id: 'military',
+    text: 'Your military threatens us. Disband 30% of your forces.',
+    consequence: 'You will lose 30% of all units',
+    check: () => {
     const totalUnits = game.cities.reduce((sum, c) =>
         sum + c.stationedUnits.infantry + c.stationedUnits.cavalry + c.stationedUnits.artillery, 0);
     return totalUnits > 3;
-},
-apply: () => {
-    game.cities.forEach(city => {
-        const infLost = Math.ceil(city.stationedUnits.infantry * 0.3);
-        const cavLost = Math.ceil(city.stationedUnits.cavalry * 0.3);
-        const artLost = Math.ceil(city.stationedUnits.artillery * 0.3);
-        city.stationedUnits.infantry -= infLost;
-        city.stationedUnits.cavalry -= cavLost;
-        city.stationedUnits.artillery -= artLost;
-    });
-    addMessage('Disbanded 30% of all military forces', 'warning');
-}
+    },
+    apply: () => {
+        game.cities.forEach(city => {
+            const infLost = Math.ceil(city.stationedUnits.infantry * 0.3);
+            const cavLost = Math.ceil(city.stationedUnits.cavalry * 0.3);
+            const artLost = Math.ceil(city.stationedUnits.artillery * 0.3);
+            city.stationedUnits.infantry -= infLost;
+            city.stationedUnits.cavalry -= cavLost;
+            city.stationedUnits.artillery -= artLost;
+        });
+        addMessage('Disbanded 30% of all military forces', 'warning');
+    }
 },
 {
     id: 'tribute',
@@ -273,75 +273,75 @@ let dragStartY = 0;
 
 
 const CITY_NAMES = [
-'Aurora', 'Nexus', 'Haven', 'Meridian', 'Eclipse', 'Solaris', 'Twilight', 'Umbra', 'Zenith', 'Nova', 'Celestia', 'Radiance',
-'Equinox', 'Halcyon', 'Solara Prime', 'Obsidian Reach', 'Aether Spire', 'Terminus', 'Lunaris', 'Polarion',
-'Cradle', 'Dawnspire', 'Noctis', 'Lumenport', 'Arclight', 'Ashen Verge', 'Mirage Basin', 'Helion Rise',
-'Penumbra Station', 'Seraphis', 'Starhold', 'Driftveil', 'Cinder Gate', 'Corona Haven', 'Tenebris', 'Skyglass', 'Ecliptane'
+    'Aurora', 'Nexus', 'Haven', 'Meridian', 'Eclipse', 'Solaris', 'Twilight', 'Umbra', 'Zenith', 'Nova', 'Celestia', 'Radiance',
+    'Equinox', 'Halcyon', 'Solara Prime', 'Obsidian Reach', 'Aether Spire', 'Terminus', 'Lunaris', 'Polarion',
+    'Cradle', 'Dawnspire', 'Noctis', 'Lumenport', 'Arclight', 'Ashen Verge', 'Mirage Basin', 'Helion Rise',
+    'Penumbra Station', 'Seraphis', 'Starhold', 'Driftveil', 'Cinder Gate', 'Corona Haven', 'Tenebris', 'Skyglass', 'Ecliptane'
 ];
-    const TRIBAL_NAMES = [
-'Flame Walkers', 'Sun Touched', 'Ember Clan', 'Ash Dwellers', 'Heat Seekers', 'Scorch Tribe', 'Fire Born',
-'Dusk Hunters', 'Shadow Bloom', 'Glow Eaters', 'Cinder Kin', 'Lava Striders', 'Star Burned', 'Torch Bearers',
-'Sun Bleached', 'The Molten', 'Kindled Ones', 'Light Breakers', 'Ashen Sons', 'Gleam Skinners',
-'Obsidian Hearts', 'Crackled Voices', 'Solar Drifters', 'Blaze Weavers', 'Glowfangs', 'The Scalded',
-'Sunward Nomads', 'Twilight Howlers', 'Soot Treaders', 'Iron Dust', 'Heat Wraiths', 'Skyfire Kin'
+const TRIBAL_NAMES = [
+    'Flame Walkers', 'Sun Touched', 'Ember Clan', 'Ash Dwellers', 'Heat Seekers', 'Scorch Tribe', 'Fire Born',
+    'Dusk Hunters', 'Shadow Bloom', 'Glow Eaters', 'Cinder Kin', 'Lava Striders', 'Star Burned', 'Torch Bearers',
+    'Sun Bleached', 'The Molten', 'Kindled Ones', 'Light Breakers', 'Ashen Sons', 'Gleam Skinners',
+    'Obsidian Hearts', 'Crackled Voices', 'Solar Drifters', 'Blaze Weavers', 'Glowfangs', 'The Scalded',
+    'Sunward Nomads', 'Twilight Howlers', 'Soot Treaders', 'Iron Dust', 'Heat Wraiths', 'Skyfire Kin'
 ];
 
-    function addMessage(text, type = 'info') {
-        const msg = document.createElement('div');
-        msg.className = `message message-${type}`;
-        msg.textContent = text;
-        const container = document.getElementById('messages');
-        container.insertBefore(msg, container.firstChild);
-        if (container.children.length > 8) {
-            container.removeChild(container.lastChild);
-        }
+function addMessage(text, type = 'info') {
+    const msg = document.createElement('div');
+    msg.className = `message message-${type}`;
+    msg.textContent = text;
+    const container = document.getElementById('messages');
+    container.insertBefore(msg, container.firstChild);
+    if (container.children.length > 8) {
+        container.removeChild(container.lastChild);
     }
+}
 
-    function gameOver(reason) {
-        game.running = false;
-        clearInterval(gameLoop);
-        const panel = document.getElementById('game-over');
-        document.getElementById('game-over-msg').textContent = reason;
-        panel.style.display = 'block';
-    }
+function gameOver(reason) {
+    game.running = false;
+    clearInterval(gameLoop);
+    const panel = document.getElementById('game-over');
+    document.getElementById('game-over-msg').textContent = reason;
+    panel.style.display = 'block';
+}
 
 function toggleCollapsible(sectionId) {
-const content = document.getElementById(`${sectionId}-content`);
-const indicator = document.getElementById(`${sectionId}-indicator`);
+    const content = document.getElementById(`${sectionId}-content`);
+    const indicator = document.getElementById(`${sectionId}-indicator`);
 
-content.classList.toggle('open');
-indicator.classList.toggle('open');
+    content.classList.toggle('open');
+    indicator.classList.toggle('open');
 
-AudioManager.playSFX('sfx-button-click', 0.3);
+    AudioManager.playSFX('sfx-button-click', 0.3);
 }
 
 
-    function victory() {
-        game.running = false;
-        clearInterval(gameLoop);
-   AudioManager.playVictoryMusic();
-        const panel = document.getElementById('game-over');
-        panel.className = 'victory';
-        const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
-        document.getElementById('game-over-msg').innerHTML = `<p style="font-size: 18px; margin: 20px 0;">Civilization evacuated to a stable planet!</p><p><strong>Statistics:</strong></p><p> Cities: ${game.cities.length}</p><p>Population: ${totalPop}</p><p>Years: ${Math.floor(game.year)}</p><p>Resources: ${Math.floor(game.resources)}</p><p style="margin-top: 20px; color: #00ff00;"> VICTORY!</p>`;
-        panel.querySelector('h2').textContent = 'Civilization Saved!';
-        panel.style.display = 'block';
-    }
+function victory() {
+    game.running = false;
+    clearInterval(gameLoop);
+    AudioManager.playVictoryMusic();
+    const panel = document.getElementById('game-over');
+    panel.className = 'victory';
+    const totalPop = game.cities.reduce((sum, c) => sum + Math.floor(c.population), 0);
+    document.getElementById('game-over-msg').innerHTML = `<p style="font-size: 18px; margin: 20px 0;">Civilization evacuated to a stable planet!</p><p><strong>Statistics:</strong></p><p> Cities: ${game.cities.length}</p><p>Population: ${totalPop}</p><p>Years: ${Math.floor(game.year)}</p><p>Resources: ${Math.floor(game.resources)}</p><p style="margin-top: 20px; color: #00ff00;"> VICTORY!</p>`;
+    panel.querySelector('h2').textContent = 'Civilization Saved!';
+    panel.style.display = 'block';
+}
 
-    function isCityInHabitableZone(city) {
-        const zoneEnd = game.habitableZone.left + game.habitableZone.width;
-        return city.position >= game.habitableZone.left && city.position <= zoneEnd;
-    }
+function isCityInHabitableZone(city) {
+    const zoneEnd = game.habitableZone.left + game.habitableZone.width;
+    return city.position >= game.habitableZone.left && city.position <= zoneEnd;
+}
 
-    function getDistanceFromZone(city) {
-        const zoneEnd = game.habitableZone.left + game.habitableZone.width;
-        if (city.position < game.habitableZone.left) {
-            return game.habitableZone.left - city.position;
-        } else if (city.position > zoneEnd) {
-            return city.position - zoneEnd;
-        }
-        return 0;
+function getDistanceFromZone(city) {
+    const zoneEnd = game.habitableZone.left + game.habitableZone.width;
+    if (city.position < game.habitableZone.left) {
+        return game.habitableZone.left - city.position;
+    } else if (city.position > zoneEnd) {
+        return city.position - zoneEnd;
     }
+    return 0;
+}
 
 function canCallReinforcements() {
     if (!hasResources(300)) return false;
@@ -352,245 +352,242 @@ function canCallReinforcements() {
 }
 
 function calculateBattlePrediction(tribal) {
-const attackingCities = game.attackingCities.length > 0 ?
-                        game.attackingCities :
-                        [getClosestPlayerCity(tribal)];
+    const attackingCities = game.attackingCities.length > 0 ?
+                            game.attackingCities :
+                            [getClosestPlayerCity(tribal)];
 
-if (!attackingCities[0]) return null;
+    if (!attackingCities[0]) return null;
 
-const formation = FORMATIONS[game.battleFormation];
+    const formation = FORMATIONS[game.battleFormation];
 
-let totalPlayerAttack = 0;
-let totalPlayerDefense = 0;
-let avgDistancePenalty = 0;
-let closestDistance = Infinity;
-let furthestDistance = 0;
+    let totalPlayerAttack = 0;
+    let totalPlayerDefense = 0;
+    let avgDistancePenalty = 0;
+    let closestDistance = Infinity;
+    let furthestDistance = 0;
 
-attackingCities.forEach(city => {
-    const distance = Math.sqrt(Math.pow(tribal.x - city.x, 2) +
-                               Math.pow(tribal.y - city.y, 2));
+    attackingCities.forEach(city => {
+        const distance = Math.sqrt(Math.pow(tribal.x - city.x, 2) +
+                                   Math.pow(tribal.y - city.y, 2));
 
-    closestDistance = Math.min(closestDistance, distance);
-    furthestDistance = Math.max(furthestDistance, distance);
+        closestDistance = Math.min(closestDistance, distance);
+        furthestDistance = Math.max(furthestDistance, distance);
 
-    let distancePenalty = 1.0;
-    if (distance > 20) {
-        distancePenalty = Math.max(0.5, 1 - ((distance - 20) * 0.02));
-    }
+        let distancePenalty = 1.0;
+        if (distance > 20) {
+            distancePenalty = Math.max(0.5, 1 - ((distance - 20) * 0.02));
+        }
 
-    const cityAttack = (city.stationedUnits.infantry * 5 +
-                       city.stationedUnits.cavalry * 12 +
-                       city.stationedUnits.artillery * 20) * distancePenalty;
+        const cityAttack = (city.stationedUnits.infantry * 5 +
+                           city.stationedUnits.cavalry * 12 +
+                           city.stationedUnits.artillery * 20) * distancePenalty;
 
-    const cityDefense = city.stationedUnits.infantry * 3 +
-                       city.stationedUnits.cavalry * 5 +
-                       city.stationedUnits.artillery * 2;
+        const cityDefense = city.stationedUnits.infantry * 3 +
+                           city.stationedUnits.cavalry * 5 +
+                           city.stationedUnits.artillery * 2;
 
-    totalPlayerAttack += cityAttack;
-    totalPlayerDefense += cityDefense;
-    avgDistancePenalty += distancePenalty;
-});
+        totalPlayerAttack += cityAttack;
+        totalPlayerDefense += cityDefense;
+        avgDistancePenalty += distancePenalty;
+    });
 
-avgDistancePenalty /= attackingCities.length;
+    avgDistancePenalty /= attackingCities.length;
 
-totalPlayerAttack *= formation.atkMod;
-totalPlayerDefense *= formation.defMod;
+    totalPlayerAttack *= formation.atkMod;
+    totalPlayerDefense *= formation.defMod;
 
-const tribalAttack = tribal.units.infantry * 5 +
-                    tribal.units.cavalry * 12 +
-                    tribal.units.artillery * 20;
-const tribalDefense = tribal.units.infantry * 3 +
-                     tribal.units.cavalry * 5 +
-                     tribal.units.artillery * 2;
+    const tribalAttack = tribal.units.infantry * 5 +
+                        tribal.units.cavalry * 12 +
+                        tribal.units.artillery * 20;
+    const tribalDefense = tribal.units.infantry * 3 +
+                         tribal.units.cavalry * 5 +
+                         tribal.units.artillery * 2;
 
-const avgCityHappiness = game.cities.length > 0
-    ? game.cities.reduce((sum, c) => sum + c.happiness, 0) / game.cities.length
-    : 50;
-const moraleMod = 0.5 + (avgCityHappiness / 100);
+    const avgCityHappiness = game.cities.length > 0
+        ? game.cities.reduce((sum, c) => sum + c.happiness, 0) / game.cities.length
+        : 50;
+    const moraleMod = 0.5 + (avgCityHappiness / 100);
 
-const effectivePlayerAttack = totalPlayerAttack * moraleMod;
-const powerRatio = effectivePlayerAttack / (tribalDefense + tribalAttack * 0.3);
+    const effectivePlayerAttack = totalPlayerAttack * moraleMod;
+    const powerRatio = effectivePlayerAttack / (tribalDefense + tribalAttack * 0.3);
 
-let risk = 'fair';
-if (powerRatio > 2.0) risk = 'easy';
-else if (powerRatio > 1.2) risk = 'fair';
-else if (powerRatio > 0.7) risk = 'hard';
-else risk = 'suicide';
+    let risk = 'fair';
+    if (powerRatio > 2.0) risk = 'easy';
+    else if (powerRatio > 1.2) risk = 'fair';
+    else if (powerRatio > 0.7) risk = 'hard';
+    else risk = 'suicide';
 
-let prediction = 'Uncertain';
-if (powerRatio > 1.5) prediction = 'Victory Likely';
-else if (powerRatio > 1.0) prediction = 'Victory Possible';
-else if (powerRatio > 0.8) prediction = 'Uncertain';
-else prediction = 'Defeat Likely';
+    let prediction = 'Uncertain';
+    if (powerRatio > 1.5) prediction = 'Victory Likely';
+    else if (powerRatio > 1.0) prediction = 'Victory Possible';
+    else if (powerRatio > 0.8) prediction = 'Uncertain';
+    else prediction = 'Defeat Likely';
 
-return {
-    risk,
-    powerRatio,
-    distance: closestDistance,
-    avgDistance: (closestDistance + furthestDistance) / 2,
-    distancePenalty: avgDistancePenalty,
-    moraleMod,
-    playerForces: Math.floor(effectivePlayerAttack),
-    tribalForces: Math.floor(tribalAttack + tribalDefense),
-    prediction,
-    attackingCities: attackingCities.length,
-    totalPlayerAttack: Math.floor(totalPlayerAttack),
-    totalPlayerDefense: Math.floor(totalPlayerDefense)
-};
+    return {
+        risk,
+        powerRatio,
+        distance: closestDistance,
+        avgDistance: (closestDistance + furthestDistance) / 2,
+        distancePenalty: avgDistancePenalty,
+        moraleMod,
+        playerForces: Math.floor(effectivePlayerAttack),
+        tribalForces: Math.floor(tribalAttack + tribalDefense),
+        prediction,
+        attackingCities: attackingCities.length,
+        totalPlayerAttack: Math.floor(totalPlayerAttack),
+        totalPlayerDefense: Math.floor(totalPlayerDefense)
+    };
 }
 
 function isTribalScouted(tribalId) {
-return game.scoutedTribalCities.includes(tribalId);
+    return game.scoutedTribalCities.includes(tribalId);
 }
 
 function getConnectedCityCount(city) {
-return getConnectedCities(city.id).length;
+    return getConnectedCities(city.id).length;
 }
 
 
 
 function getUnitIconPosition(index, total, citySize = 40) {
-const startY = -10;
-const spacing = 12;
-const iconsPerRow = 4;
+    const startY = -10;
+    const spacing = 12;
+    const iconsPerRow = 4;
 
-const row = Math.floor(index / iconsPerRow);
-const col = index % iconsPerRow;
-const iconsInThisRow = Math.min(iconsPerRow, total - (row * iconsPerRow));
+    const row = Math.floor(index / iconsPerRow);
+    const col = index % iconsPerRow;
+    const iconsInThisRow = Math.min(iconsPerRow, total - (row * iconsPerRow));
 
-const rowWidth = (iconsInThisRow - 1) * spacing;
-const startX = -rowWidth / 2;
+    const rowWidth = (iconsInThisRow - 1) * spacing;
+    const startX = -rowWidth / 2;
 
-const x = startX + (col * spacing);
-const y = startY + (row * spacing);
+    const x = startX + (col * spacing);
+    const y = startY + (row * spacing);
 
-return { x, y };
+    return { x, y };
 }
 
 function updateFeatureSharingIndicators() {
-game.features.forEach(feature => {
-    const citiesNearby = game.cities.filter(city => {
-        const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
-        return dist < 12 && !city.isRebel;
-    }).length;
+    game.features.forEach(feature => {
+        const citiesNearby = game.cities.filter(city => {
+            const dist = Math.sqrt(Math.pow(city.x - feature.x, 2) + Math.pow(city.y - feature.y, 2));
+            return dist < 12 && !city.isRebel;
+        }).length;
 
-    const featureElements = document.querySelectorAll(`.${feature.type}-feature`);
-    featureElements.forEach(el => {
-        const existingIndicator = el.querySelector('.feature-share-indicator');
-        if (existingIndicator) existingIndicator.remove();
+        const featureElements = document.querySelectorAll(`.${feature.type}-feature`);
+        featureElements.forEach(el => {
+            const existingIndicator = el.querySelector('.feature-share-indicator');
+            if (existingIndicator) existingIndicator.remove();
 
-        if (citiesNearby > 1) {
-            const indicator = document.createElement('div');
-            indicator.className = 'feature-share-indicator';
-            indicator.textContent = citiesNearby;
-            indicator.title = `Shared by ${citiesNearby} cities`;
-            el.appendChild(indicator);
-        }
+            if (citiesNearby > 1) {
+                const indicator = document.createElement('div');
+                indicator.className = 'feature-share-indicator';
+                indicator.textContent = citiesNearby;
+                indicator.title = `Shared by ${citiesNearby} cities`;
+                el.appendChild(indicator);
+            }
+        });
     });
-});
 }
 
 function updateCityUnitIcons(city) {
-const cityEl = document.getElementById(`city-${city.id}`);
-if (!cityEl) return;
+    const cityEl = document.getElementById(`city-${city.id}`);
+    if (!cityEl) return;
 
-cityEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
+    cityEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
 
-const units = [];
+    const units = [];
 
-for (let i = 0; i < city.stationedUnits.infantry; i++) {
-    units.push({ type: 'infantry', symbol: '⚔' });
-}
-for (let i = 0; i < city.stationedUnits.cavalry; i++) {
-    units.push({ type: 'cavalry', symbol: '♞' });
-}
-for (let i = 0; i < city.stationedUnits.artillery; i++) {
-    units.push({ type: 'artillery', symbol: '⚡' });
-}
+    for (let i = 0; i < city.stationedUnits.infantry; i++) {
+        units.push({ type: 'infantry', symbol: '⚔' });
+    }
+    for (let i = 0; i < city.stationedUnits.cavalry; i++) {
+        units.push({ type: 'cavalry', symbol: '♞' });
+    }
+    for (let i = 0; i < city.stationedUnits.artillery; i++) {
+        units.push({ type: 'artillery', symbol: '⚡' });
+    }
 
-units.forEach((unit, index) => {
-    const pos = getUnitIconPosition(index, units.length);
-    const iconEl = document.createElement('div');
-    iconEl.className = `unit-icon unit-icon-${unit.type}`;
-    iconEl.style.left = `${pos.x}px`;
-    iconEl.style.top = `${pos.y}px`;
-    iconEl.title = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
+    units.forEach((unit, index) => {
+        const pos = getUnitIconPosition(index, units.length);
+        const iconEl = document.createElement('div');
+        iconEl.className = `unit-icon unit-icon-${unit.type}`;
+        iconEl.style.left = `${pos.x}px`;
+        iconEl.style.top = `${pos.y}px`;
+        iconEl.title = unit.type.charAt(0).toUpperCase() + unit.type.slice(1);
 
-    iconEl.innerHTML = `
-        <div class="unit-icon-inner">
-            <div class="unit-icon-outer-ring"></div>
-            <div class="unit-icon-middle-layer"></div>
-            <div class="unit-icon-core">
-                <span class="unit-icon-symbol">${unit.symbol}</span>
+        iconEl.innerHTML = `
+            <div class="unit-icon-inner">
+                <div class="unit-icon-outer-ring"></div>
+                <div class="unit-icon-middle-layer"></div>
+                <div class="unit-icon-core">
+                    <span class="unit-icon-symbol">${unit.symbol}</span>
+                </div>
             </div>
-        </div>
-    `;
+        `;
 
-    cityEl.appendChild(iconEl);
-});
+        cityEl.appendChild(iconEl);
+    });
 }
 
 function updateTribalUnitIcons(tribal) {
-const tribalEl = document.getElementById(`tribal-${tribal.id}`);
-if (!tribalEl || tribal.isConverted) return;
+    const tribalEl = document.getElementById(`tribal-${tribal.id}`);
+    if (!tribalEl || tribal.isConverted) return;
 
-const isWartime = game.tribalRelation === 'war';
-const isScouted = isTribalScouted(tribal.id);
+    const isWartime = game.tribalRelation === 'war';
+    const isScouted = isTribalScouted(tribal.id);
 
-tribalEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
+    tribalEl.querySelectorAll('.unit-icon').forEach(icon => icon.remove());
 
-if (isWartime && !isScouted) {
-    const pos = getUnitIconPosition(0, 1, 35);
-    const iconEl = document.createElement('div');
-    iconEl.className = 'unit-icon';
-    iconEl.style.left = `${pos.x}px`;
-    iconEl.style.top = `${pos.y}px`;
-    iconEl.title = 'Unknown forces - Scout to reveal';
-    iconEl.style.fontSize = '18px';
-    iconEl.style.color = '#ff4400';
-    iconEl.style.textShadow = '0 0 5px rgba(255, 68, 0, 0.8)';
-    iconEl.innerHTML = '?';
+    if (isWartime && !isScouted) {
+        const pos = getUnitIconPosition(0, 1, 35);
+        const iconEl = document.createElement('div');
+        iconEl.className = 'unit-icon';
+        iconEl.style.left = `${pos.x}px`;
+        iconEl.style.top = `${pos.y}px`;
+        iconEl.title = 'Unknown forces - Scout to reveal';
+        iconEl.style.fontSize = '18px';
+        iconEl.style.color = '#ff4400';
+        iconEl.style.textShadow = '0 0 5px rgba(255, 68, 0, 0.8)';
+        iconEl.innerHTML = '?';
 
-    tribalEl.appendChild(iconEl);
-    return;
-}
+        tribalEl.appendChild(iconEl);
+        return;
+    }
 
-const units = [];
+    const units = [];
 
-for (let i = 0; i < tribal.units.infantry; i++) {
-    units.push({ type: 'infantry', symbol: '⚔' });
-}
-for (let i = 0; i < tribal.units.cavalry; i++) {
-    units.push({ type: 'cavalry', symbol: '♞' });
-}
-for (let i = 0; i < tribal.units.artillery; i++) {
-    units.push({ type: 'artillery', symbol: '⚡' });
-}
+    for (let i = 0; i < tribal.units.infantry; i++) {
+        units.push({ type: 'infantry', symbol: '⚔' });
+    }
+    for (let i = 0; i < tribal.units.cavalry; i++) {
+        units.push({ type: 'cavalry', symbol: '♞' });
+    }
+    for (let i = 0; i < tribal.units.artillery; i++) {
+        units.push({ type: 'artillery', symbol: '⚡' });
+    }
 
-units.forEach((unit, index) => {
-    const pos = getUnitIconPosition(index, units.length, 35);
-    const iconEl = document.createElement('div');
-    iconEl.className = `unit-icon unit-icon-${unit.type}`;
-    iconEl.style.left = `${pos.x}px`;
-    iconEl.style.top = `${pos.y}px`;
-    iconEl.title = `Tribal ${unit.type}`;
+    units.forEach((unit, index) => {
+        const pos = getUnitIconPosition(index, units.length, 35);
+        const iconEl = document.createElement('div');
+        iconEl.className = `unit-icon unit-icon-${unit.type}`;
+        iconEl.style.left = `${pos.x}px`;
+        iconEl.style.top = `${pos.y}px`;
+        iconEl.title = `Tribal ${unit.type}`;
 
-    iconEl.innerHTML = `
-        <div class="unit-icon-inner">
-            <div class="unit-icon-outer-ring"></div>
-            <div class="unit-icon-middle-layer"></div>
-            <div class="unit-icon-core">
-                <span class="unit-icon-symbol">${unit.symbol}</span>
+        iconEl.innerHTML = `
+            <div class="unit-icon-inner">
+                <div class="unit-icon-outer-ring"></div>
+                <div class="unit-icon-middle-layer"></div>
+                <div class="unit-icon-core">
+                    <span class="unit-icon-symbol">${unit.symbol}</span>
+                </div>
             </div>
-        </div>
-    `;
+        `;
 
-    tribalEl.appendChild(iconEl);
-});
+        tribalEl.appendChild(iconEl);
+    });
 }
-
-
-
 
 function callReinforcements() {
     if (!canCallReinforcements()) {
@@ -610,19 +607,17 @@ function callReinforcements() {
     game.ddrSequence.push('ArrowUp', 'ArrowRight');
 }
 
+function updateHabitableZone() {
+    const zone = document.getElementById('habitable-zone');
+    zone.style.left = `${game.habitableZone.left}%`;
+    zone.style.width = `${game.habitableZone.width}%`;
+}
 
-
-    function updateHabitableZone() {
-        const zone = document.getElementById('habitable-zone');
-        zone.style.left = `${game.habitableZone.left}%`;
-        zone.style.width = `${game.habitableZone.width}%`;
-    }
-
-    function getZoneType(position) {
-        if (position < 30) return 'hot';
-        if (position > 65) return 'cold';
-        return 'habitable';
-    }
+function getZoneType(position) {
+    if (position < 30) return 'hot';
+    if (position > 65) return 'cold';
+    return 'habitable';
+}
 
 function getCityName() {
     const available = CITY_NAMES.filter(n => !usedNames.includes(n));
@@ -1157,10 +1152,10 @@ function updateAttackersList() {
     }
 
 function cancelAttackSelection() {
-game.selectingAttackers = false;
-game.attackingCities = [];
-game.targetTribal = null;
-document.getElementById('info-panel').innerHTML = '';
+    game.selectingAttackers = false;
+    game.attackingCities = [];
+    game.targetTribal = null;
+    document.getElementById('info-panel').innerHTML = '';
 }
 
 function confirmAttack() {
@@ -1276,6 +1271,7 @@ function upgradeCity(cityId) {
     AudioManager.playSFX('sfx-success', 0.7);
     selectCity(city);
 }
+
 function migrateFrom(cityId) {
     const fromCity = game.cities.find(c => c.id === cityId);
     if (!fromCity || fromCity.population < 50 || fromCity.isRebel) {
@@ -1387,22 +1383,22 @@ function startGame() {
     cityEl.onclick = (e) => {
         e.stopPropagation();
         if (game.buildingRoad && game.roadStartCity) {
-            if (game.roadStartCity.id === city.id) {
-                selectCity(city);
+            if (game.roadStartCity.id === startingCity.id) {
+                selectCity(startingCity);
                 return;
             }
 
             if (game.selectedType === 'tribal') {
-                createPlayerTribalRoad(game.roadStartCity, city);
+                createPlayerTribalRoad(game.roadStartCity, startingCity);
             } else {
-                createRoad(game.roadStartCity, city);
+                createRoad(game.roadStartCity, startingCity);
             }
             game.buildingRoad = false;
             game.roadStartCity = null;
             document.getElementById('build-road-btn').classList.remove('active');
             updateRoadButtonText();
         } else {
-            selectCity(city);
+            selectCity(startingCity);
         }
     };
 
@@ -1889,70 +1885,70 @@ function sendFoodAid(cityId, amount) {
 }
 
 function showPeaceDemand(demand, year) {
-game.paused = true;
-const popup = document.getElementById('peace-demand-popup');
+    game.paused = true;
+    const popup = document.getElementById('peace-demand-popup');
 
-document.getElementById('peace-demand-text').textContent = demand.text;
-document.getElementById('peace-demand-consequence').textContent = demand.consequence;
-document.getElementById('peace-talks-year').textContent = year;
+    document.getElementById('peace-demand-text').textContent = demand.text;
+    document.getElementById('peace-demand-consequence').textContent = demand.consequence;
+    document.getElementById('peace-talks-year').textContent = year;
 
-popup.style.display = 'block';
-AudioManager.playSFX('sfx-alert', 0.6);
+    popup.style.display = 'block';
+    AudioManager.playSFX('sfx-alert', 0.6);
 }
 
 function respondToPeaceDemand(accepted) {
-if (accepted) {
-    game.peaceDemandsMet++;
-    game.currentPeaceDemand.apply();
-    addMessage('Accepted tribal demand', 'info');
-} else {
-    addMessage('Rejected tribal demand', 'warning');
-}
+    if (accepted) {
+        game.peaceDemandsMet++;
+        game.currentPeaceDemand.apply();
+        addMessage('Accepted tribal demand', 'info');
+    } else {
+        addMessage('Rejected tribal demand', 'warning');
+    }
 
-document.getElementById('peace-demand-popup').style.display = 'none';
+    document.getElementById('peace-demand-popup').style.display = 'none';
 
-const currentYear = Math.floor(game.peaceTalksTimer);
-game.peaceTalksTimer = currentYear + 1.0;
-game.currentPeaceDemand = null;
-game.paused = false;
+    const currentYear = Math.floor(game.peaceTalksTimer);
+    game.peaceTalksTimer = currentYear + 1.0;
+    game.currentPeaceDemand = null;
+    game.paused = false;
 }
 
 function concludePeaceTalks() {
-game.peaceTalksActive = false;
-game.peaceTalksTimer = 0;
+    game.peaceTalksActive = false;
+    game.peaceTalksTimer = 0;
 
-if (game.peaceDemandsMet === 0) {
-    addMessage('PEACE TALKS FAILED! Tribes launch massive attack!', 'danger');
-    AudioManager.playSFX('sfx-alert', 0.8);
+    if (game.peaceDemandsMet === 0) {
+        addMessage('PEACE TALKS FAILED! Tribes launch massive attack!', 'danger');
+        AudioManager.playSFX('sfx-alert', 0.8);
 
-    for (let i = 0; i < 3; i++) {
-        setTimeout(() => tribalCounterattack(), i * 1500);
+        for (let i = 0; i < 3; i++) {
+            setTimeout(() => tribalCounterattack(), i * 1500);
+        }
+    } else if (game.peaceDemandsMet === 1) {
+        game.tribalRelation = 'hostile';
+        game.tribalReputation = 30;
+        game.peaceTreatyCooldown = 700;
+        AudioManager.playBgMusic();
+        addMessage('Peace achieved. Relations: HOSTILE', 'warning');
+        addMessage('Peace treaty: No war for 7 years', 'info');
+    } else if (game.peaceDemandsMet === 2) {
+        game.tribalRelation = 'neutral';
+        game.tribalReputation = 50;
+        game.peaceTreatyCooldown = 700;
+        AudioManager.playBgMusic();
+        addMessage('Peace achieved. Relations: NEUTRAL', 'success');
+        addMessage('Peace treaty: No war for 7 years', 'info');
+    } else {
+        game.tribalRelation = 'friendly';
+        game.tribalReputation = 70;
+        game.peaceTreatyCooldown = 700;
+        AudioManager.playBgMusic();
+        addMessage('Peace achieved. Relations: FRIENDLY', 'success');
+        addMessage('Peace treaty: No war for 7 years', 'info');
     }
-} else if (game.peaceDemandsMet === 1) {
-    game.tribalRelation = 'hostile';
-    game.tribalReputation = 30;
-    game.peaceTreatyCooldown = 700;
-    AudioManager.playBgMusic();
-    addMessage('Peace achieved. Relations: HOSTILE', 'warning');
-    addMessage('Peace treaty: No war for 7 years', 'info');
-} else if (game.peaceDemandsMet === 2) {
-    game.tribalRelation = 'neutral';
-    game.tribalReputation = 50;
-    game.peaceTreatyCooldown = 700;
-    AudioManager.playBgMusic();
-    addMessage('Peace achieved. Relations: NEUTRAL', 'success');
-    addMessage('Peace treaty: No war for 7 years', 'info');
-} else {
-    game.tribalRelation = 'friendly';
-    game.tribalReputation = 70;
-    game.peaceTreatyCooldown = 700;
-    AudioManager.playBgMusic();
-    addMessage('Peace achieved. Relations: FRIENDLY', 'success');
-    addMessage('Peace treaty: No war for 7 years', 'info');
-}
 
-game.peaceDemands = [];
-game.currentPeaceDemand = null;
+    game.peaceDemands = [];
+    game.currentPeaceDemand = null;
 }
 
 function toggleAutoFeed(cityId) {
@@ -1965,49 +1961,49 @@ function toggleAutoFeed(cityId) {
 }
 
 function checkTribalWarDeclaration() {
-if (game.tribalsDefeated || game.tribalRelation === 'war') return;
+    if (game.tribalsDefeated || game.tribalRelation === 'war') return;
 
-const activeTribals = game.tribalCities.filter(t => !t.isConverted);
-const totalTribalForces = activeTribals.reduce((sum, t) =>
-    sum + t.units.infantry + t.units.cavalry + t.units.artillery, 0
-);
+    const activeTribals = game.tribalCities.filter(t => !t.isConverted);
+    const totalTribalForces = activeTribals.reduce((sum, t) =>
+        sum + t.units.infantry + t.units.cavalry + t.units.artillery, 0
+    );
 
- if (totalTribalForces >= 50 && game.tribalReputation < 50 && game.peaceTreatyCooldown === 0) {
-    const nearbyCities = game.cities.filter(city => {
-        const closestTribalDist = Math.min(...activeTribals.map(tribal =>
-            Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
-        ));
-        return closestTribalDist < 30;
-    });
-
-    if (nearbyCities.length >= 3) {
-        game.tribalRelation = 'war';
-game.tribalReputation = 0;
-
-AudioManager.playBattleMusic();
-
-addMessage('TRIBALS DECLARE WAR! Your expansion threatens them!', 'danger');
-        addMessage(`${totalTribalForces} tribal warriors mobilizing!`, 'danger');
-        AudioManager.playSFX('sfx-alert', 0.8);
-        AudioManager.playBattleMusic();
-
-        game.cities.forEach(city => {
-            if (!city.isRebel) {
-                city.happiness = Math.max(0, city.happiness - 25);
-                updateCityDisplay(city);
-            }
+    if (totalTribalForces >= 50 && game.tribalReputation < 50 && game.peaceTreatyCooldown === 0) {
+        const nearbyCities = game.cities.filter(city => {
+            const closestTribalDist = Math.min(...activeTribals.map(tribal =>
+                Math.sqrt(Math.pow(tribal.x - city.x, 2) + Math.pow(tribal.y - city.y, 2))
+            ));
+            return closestTribalDist < 30;
         });
 
-        setTimeout(() => {
-            addMessage('TRIBAL INVASION INCOMING!', 'danger');
-            for (let i = 0; i < 3; i++) {
-                setTimeout(() => {
-                    tribalCounterattack();
-                }, i * 2000);
-            }
-        }, 2000);
+        if (nearbyCities.length >= 3) {
+            game.tribalRelation = 'war';
+            game.tribalReputation = 0;
+
+            AudioManager.playBattleMusic();
+
+            addMessage('TRIBALS DECLARE WAR! Your expansion threatens them!', 'danger');
+            addMessage(`${totalTribalForces} tribal warriors mobilizing!`, 'danger');
+            AudioManager.playSFX('sfx-alert', 0.8);
+            AudioManager.playBattleMusic();
+
+            game.cities.forEach(city => {
+                if (!city.isRebel) {
+                    city.happiness = Math.max(0, city.happiness - 25);
+                    updateCityDisplay(city);
+                }
+            });
+
+            setTimeout(() => {
+                addMessage('TRIBAL INVASION INCOMING!', 'danger');
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        tribalCounterattack();
+                    }, i * 2000);
+                }
+            }, 2000);
+        }
     }
-}
 }
 
 function beginBattle() {
@@ -2681,6 +2677,7 @@ function createCity(x, y) {
         governor: 'none',
         hasEmergencyRelief: false
     };
+
     const activeTribals = game.tribalCities.filter(t => !t.isConverted);
     activeTribals.forEach(tribal => {
         const distance = Math.sqrt(Math.pow(x - tribal.x, 2) + Math.pow(y - tribal.y, 2));
@@ -2707,6 +2704,7 @@ function createCity(x, y) {
         <div class="city-center-marker"></div>
         <div class="population-bar"></div>
     `;
+
     cityEl.onclick = (e) => {
         e.stopPropagation();
         if (game.buildingRoad && game.roadStartCity && game.roadStartCity.id !== city.id) {
