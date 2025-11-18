@@ -920,11 +920,8 @@ function selectCity(city) {
              <p class="food-autofeed-text" style="font-size: 9px;">Auto-feed: ${city.autoFeed ? '✓ ON' : '✗ OFF'}</p>
              ${!isCityInHabitableZone(city) && city.foodStockpile < 50 ?
                  '<p style="font-size: 9px; color: #ff4400;">⚠️ Low food! Population dying faster!</p>' : ''}
-             <div style="display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap;">
-                 <button class="action-btn" style="font-size: 9px; padding: 4px; flex: 1; min-width: 70px;" onclick="toggleAutoFeed(${city.id})">${city.autoFeed ? 'Disable' : 'Enable'} Auto-feed</button>
-                 <button class="action-btn" style="font-size: 9px; padding: 4px; flex: 1; min-width: 90px; ${city.emergencyFeed ? 'background: rgba(255,68,0,0.3); border-color: #ff4400;' : ''}" onclick="toggleEmergencyFeed(${city.id})">${city.emergencyFeed ? 'Emergency: ON' : 'Emergency: OFF'}</button>
-             </div>
              <div style="display: flex; gap: 5px; margin-top: 5px;">
+                 <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="toggleAutoFeed(${city.id})">${city.autoFeed ? 'Disable' : 'Enable'} Auto-feed</button>
                  <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 20)" ${game.resources.food < 20 ? 'disabled' : ''}>+20 Food</button>
                  <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 50)" ${game.resources.food < 50 ? 'disabled' : ''}>+50 Food</button>
              </div>
@@ -1462,7 +1459,6 @@ function startGame() {
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
         hasHerders: false,
-        emergencyFeed: false,
         warned: false,
         zoneType: getZoneType(50),
         isRebel: false,
@@ -1771,52 +1767,31 @@ function update() {
             });
         }
 
-        if (city.emergencyFeed) {
-            const stockpileLoss = inZone ? 0 : Math.max(0.3, dist / 20);
-            const foodToMaintain = stockpileLoss;
+        if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
+            const foodNeeded = calculateFoodNeeds(city);
+            city.foodConsumptionRate = foodNeeded;
 
-            if (game.resources.food >= foodToMaintain) {
-                game.resources.food -= foodToMaintain;
-                city.foodStockpile = Math.max(city.foodStockpile, city.foodStockpile);
+            if (city.autoFeed && game.resources.food >= foodNeeded) {
+                game.resources.food -= foodNeeded;
+                city.foodStockpile = Math.min(100, city.foodStockpile + 0.5);
+
+                if (city.foodStockpile >= 20) {
+                    const baseGrowth = city.isConverted ? 0.3 : 0.5;
+                    const specialization = city.specialization || 'none';
+                    const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
+                    const foodBonus = Math.min(1.5, city.foodStockpile / 50);
+                    const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
+                    const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
+                    city.population += growthRate;
+                } else {
+                    city.population += 0.1;
+                }
             } else {
-                city.foodStockpile = Math.max(0, city.foodStockpile - stockpileLoss);
+                city.foodStockpile = Math.max(0, city.foodStockpile - 1);
                 if (city.foodStockpile < 10) {
                     city.happiness -= 0.05;
                 }
             }
-
-            if (city.foodStockpile >= 20) {
-                const baseGrowth = city.isConverted ? 0.3 : 0.5;
-                const specialization = city.specialization || 'none';
-                const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
-                const foodBonus = Math.min(1.5, city.foodStockpile / 50);
-                const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
-                const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
-                city.population += growthRate;
-            } else {
-                city.population += 0.1;
-            }
-        } else if (city.autoFeed && game.resources.food >= foodNeeded) {
-            game.resources.food -= foodNeeded;
-            city.foodStockpile = Math.min(100, city.foodStockpile + 0.5);
-
-            if (city.foodStockpile >= 20) {
-                const baseGrowth = city.isConverted ? 0.3 : 0.5;
-                const specialization = city.specialization || 'none';
-                const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
-                const foodBonus = Math.min(1.5, city.foodStockpile / 50);
-                const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
-                const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
-                city.population += growthRate;
-            } else {
-                city.population += 0.1;
-            }
-        } else {
-            city.foodStockpile = Math.max(0, city.foodStockpile - 1);
-            if (city.foodStockpile < 10) {
-                city.happiness -= 0.05;
-            }
-        }
 
             const popRatio = city.population / city.maxPopulation;
             const popProductionBonus = 0.5 + (popRatio * 0.5);
@@ -2165,15 +2140,6 @@ function toggleAutoFeed(cityId) {
 
     city.autoFeed = !city.autoFeed;
     addMessage(`${city.name}: Auto-feed ${city.autoFeed ? 'ON' : 'OFF'}`, 'info');
-    selectCity(city);
-}
-
-function toggleEmergencyFeed(cityId) {
-    const city = game.cities.find(c => c.id === cityId);
-    if (!city || city.isRebel) return;
-
-    city.emergencyFeed = !city.emergencyFeed;
-    addMessage(`${city.name}: Emergency feed ${city.emergencyFeed ? 'ON' : 'OFF'}`, city.emergencyFeed ? 'warning' : 'info');
     selectCity(city);
 }
 
@@ -2969,7 +2935,6 @@ function createCity(x, y) {
 
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
-        emergencyFeed: false,
         hasHerders: false,
         warned: false,
         zoneType: getZoneType(x),
@@ -6125,7 +6090,6 @@ function convertTribalCity(tribal) {
 
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
-        emergencyFeed: false,
         hasHerders: false,
         specialization: 'none',
         warned: false,
