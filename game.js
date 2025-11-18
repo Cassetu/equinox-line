@@ -224,11 +224,11 @@ const LAWS = {
 };
 
 const PERKS = {
-    veteranTroops: { name: 'Veteran Troops', description: 'Start with +2 combo', level: 1, effect: 'combo' },
-    swiftStrike: { name: 'Swift Strike', description: 'Get an blitz ability that makes you attack 2 times faster', level: 2, effect: 'slow' },
-    defensiveGenius: { name: 'Defensive Genius', description: 'Take 25% less damage', level: 3, effect: 'defense' },
-    relentless: { name: 'Relentless', description: 'First miss doesn\'t break combo', level: 4, effect: 'forgive' },
-    inspiration: { name: 'Inspiration', description: 'High morale boosts damage', level: 5, effect: 'morale' }
+    veteranTroops: { name: 'Veteran Troops', description: 'Start with +20% HP and +20 morale', level: 1, effect: 'veteranBonus' },
+    swiftStrike: { name: 'Swift Strike', description: 'Activate to double attack speed for 10 seconds', level: 2, effect: 'blitz' },
+    defensiveGenius: { name: 'Defensive Genius', description: 'Take 25% less damage and can force all units to Hold', level: 3, effect: 'defense' },
+    relentless: { name: 'Relentless', description: 'Activate to heal 20% HP and prevent retreat', level: 4, effect: 'lastStand' },
+    inspiration: { name: 'Inspiration', description: 'High morale (75+) boosts damage by 15%, can restore +30 morale', level: 5, effect: 'morale' }
 };
 
 const FORMATIONS = {
@@ -315,7 +315,7 @@ const PEACE_DEMANDS = [
 const game = {
     running: false, paused: false, year: 0,
     resources: { food: 500, metal: 400, energy: 250, livestock: 0 },
-    livestock: { cattle: 0, sheep: 0, goats: 0 },
+    livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
     wildHerds: [],
     livestockMarket: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
     researchPoints: 0,
@@ -920,8 +920,11 @@ function selectCity(city) {
              <p class="food-autofeed-text" style="font-size: 9px;">Auto-feed: ${city.autoFeed ? '✓ ON' : '✗ OFF'}</p>
              ${!isCityInHabitableZone(city) && city.foodStockpile < 50 ?
                  '<p style="font-size: 9px; color: #ff4400;">⚠️ Low food! Population dying faster!</p>' : ''}
+             <div style="display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap;">
+                 <button class="action-btn" style="font-size: 9px; padding: 4px; flex: 1; min-width: 70px;" onclick="toggleAutoFeed(${city.id})">${city.autoFeed ? 'Disable' : 'Enable'} Auto-feed</button>
+                 <button class="action-btn" style="font-size: 9px; padding: 4px; flex: 1; min-width: 90px; ${city.emergencyFeed ? 'background: rgba(255,68,0,0.3); border-color: #ff4400;' : ''}" onclick="toggleEmergencyFeed(${city.id})">${city.emergencyFeed ? 'Emergency: ON' : 'Emergency: OFF'}</button>
+             </div>
              <div style="display: flex; gap: 5px; margin-top: 5px;">
-                 <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="toggleAutoFeed(${city.id})">${city.autoFeed ? 'Disable' : 'Enable'} Auto-feed</button>
                  <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 20)" ${game.resources.food < 20 ? 'disabled' : ''}>+20 Food</button>
                  <button class="action-btn" style="font-size: 9px; padding: 4px;" onclick="sendFoodAid(${city.id}, 50)" ${game.resources.food < 50 ? 'disabled' : ''}>+50 Food</button>
              </div>
@@ -1420,7 +1423,7 @@ function startGame() {
         cities: [], roads: [], features: [], tribalCities: [], tribalRoads: [],
         messages: [], selectedCity: null, spaceportProgress: 0, spaceportBuilding: false,
         spaceportYearStarted: 0,
-        livestock: { cattle: 0, sheep: 0, goats: 0 },
+        livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         wonderLocations: [],
         placingSpaceport: false, spaceportX: 0, spaceportY: 0,
         resources: { food: 500, metal: 400, energy: 250 }, year: 0,
@@ -1459,6 +1462,7 @@ function startGame() {
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
         hasHerders: false,
+        emergencyFeed: false,
         warned: false,
         zoneType: getZoneType(50),
         isRebel: false,
@@ -1767,31 +1771,52 @@ function update() {
             });
         }
 
-        if (inZone || (city.zoneType === 'hot' && city.isConverted)) {
-            const foodNeeded = calculateFoodNeeds(city);
-            city.foodConsumptionRate = foodNeeded;
+        if (city.emergencyFeed) {
+            const stockpileLoss = inZone ? 0 : Math.max(0.3, dist / 20);
+            const foodToMaintain = stockpileLoss;
 
-            if (city.autoFeed && game.resources.food >= foodNeeded) {
-                game.resources.food -= foodNeeded;
-                city.foodStockpile = Math.min(100, city.foodStockpile + 0.5);
-
-                if (city.foodStockpile >= 20) {
-                    const baseGrowth = city.isConverted ? 0.3 : 0.5;
-                    const specialization = city.specialization || 'none';
-                    const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
-                    const foodBonus = Math.min(1.5, city.foodStockpile / 50);
-                    const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
-                    const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
-                    city.population += growthRate;
-                } else {
-                    city.population += 0.1;
-                }
+            if (game.resources.food >= foodToMaintain) {
+                game.resources.food -= foodToMaintain;
+                city.foodStockpile = Math.max(city.foodStockpile, city.foodStockpile);
             } else {
-                city.foodStockpile = Math.max(0, city.foodStockpile - 1);
+                city.foodStockpile = Math.max(0, city.foodStockpile - stockpileLoss);
                 if (city.foodStockpile < 10) {
                     city.happiness -= 0.05;
                 }
             }
+
+            if (city.foodStockpile >= 20) {
+                const baseGrowth = city.isConverted ? 0.3 : 0.5;
+                const specialization = city.specialization || 'none';
+                const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
+                const foodBonus = Math.min(1.5, city.foodStockpile / 50);
+                const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
+                const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
+                city.population += growthRate;
+            } else {
+                city.population += 0.1;
+            }
+        } else if (city.autoFeed && game.resources.food >= foodNeeded) {
+            game.resources.food -= foodNeeded;
+            city.foodStockpile = Math.min(100, city.foodStockpile + 0.5);
+
+            if (city.foodStockpile >= 20) {
+                const baseGrowth = city.isConverted ? 0.3 : 0.5;
+                const specialization = city.specialization || 'none';
+                const specGrowthMod = 1 + CITY_SPECIALIZATIONS[specialization].growthBonus;
+                const foodBonus = Math.min(1.5, city.foodStockpile / 50);
+                const techGrowthBonus = 1 + TechTree.getTechBonus('popGrowth');
+                const growthRate = (baseGrowth + (featureBonus.growthPenalty * 0.01)) * specGrowthMod * foodBonus * techGrowthBonus;
+                city.population += growthRate;
+            } else {
+                city.population += 0.1;
+            }
+        } else {
+            city.foodStockpile = Math.max(0, city.foodStockpile - 1);
+            if (city.foodStockpile < 10) {
+                city.happiness -= 0.05;
+            }
+        }
 
             const popRatio = city.population / city.maxPopulation;
             const popProductionBonus = 0.5 + (popRatio * 0.5);
@@ -1949,7 +1974,7 @@ function update() {
 
                     city.livestock[type] = Math.max(0, count + births - deaths);
 
-                    const foodProduced = count * livestock.foodPerAnimal;
+                    const foodProduced = count * livestock.foodPerAnimal * 0.01;
                     game.resources.food += foodProduced;
 
                     if (type === 'horses' && city.livestock.horses > 0) {
@@ -2140,6 +2165,15 @@ function toggleAutoFeed(cityId) {
 
     city.autoFeed = !city.autoFeed;
     addMessage(`${city.name}: Auto-feed ${city.autoFeed ? 'ON' : 'OFF'}`, 'info');
+    selectCity(city);
+}
+
+function toggleEmergencyFeed(cityId) {
+    const city = game.cities.find(c => c.id === cityId);
+    if (!city || city.isRebel) return;
+
+    city.emergencyFeed = !city.emergencyFeed;
+    addMessage(`${city.name}: Emergency feed ${city.emergencyFeed ? 'ON' : 'OFF'}`, city.emergencyFeed ? 'warning' : 'info');
     selectCity(city);
 }
 
@@ -2935,6 +2969,7 @@ function createCity(x, y) {
 
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
+        emergencyFeed: false,
         hasHerders: false,
         warned: false,
         zoneType: getZoneType(x),
@@ -5974,8 +6009,8 @@ function setupPerkAbilities(state) {
         if (perkKey === 'defensiveGenius') {
             const btn = document.createElement('button');
             btn.className = 'perk-ability-btn';
-            btn.textContent = '🛡️ Fortify';
-            btn.title = 'All units Hold position with +50% defense for 15s';
+            btn.textContent = '🛡️ Fortify: All Units Hold';
+            btn.title = 'Forces all units to Hold position with +50% defense bonus for 15s';
             btn.onclick = () => {
                 if (!state.perksUsed.includes('defensiveGenius')) {
                     ['infantry', 'cavalry', 'artillery'].forEach(type => {
@@ -6090,6 +6125,7 @@ function convertTribalCity(tribal) {
 
         livestock: { cattle: 0, sheep: 0, chickens: 0, horses: 0 },
         livestockCapacity: 50,
+        emergencyFeed: false,
         hasHerders: false,
         specialization: 'none',
         warned: false,
