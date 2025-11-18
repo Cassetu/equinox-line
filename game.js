@@ -380,7 +380,7 @@ const game = {
     researchPoints: 0,
     currentRequest: null,
     requestCooldown: 0,
-    nextRequestTime: 300,
+    nextRequestTime: 2,
     cities: [], roads: [], features: [], tribalCities: [], tribalRoads: [],
     habitableZone: { left: 35, width: 30 }, zoneShiftSpeed: -0.5,
     selectedCity: null, selectedType: null, placingCity: false, buildingRoad: false, roadStartCity: null,
@@ -1486,7 +1486,7 @@ function startGame() {
         wonderLocations: [],
         currentRequest: null,
         requestCooldown: 0,
-        nextRequestTime: 300,
+        nextRequestTime: 2,
         placingSpaceport: false, spaceportX: 0, spaceportY: 0,
         resources: { food: 500, metal: 400, energy: 250 }, year: 0,
         gatherCooldown: 0, tribalTradeCooldown: 0, tribalReputation: 50,
@@ -1647,7 +1647,7 @@ function updateCitizenRequests() {
 
         const randomRequest = availableRequests[Math.floor(Math.random() * availableRequests.length)];
         game.currentRequest = { ...randomRequest };
-        game.nextRequestTime = game.year + 200 + Math.random() * 300;
+        game.nextRequestTime = game.year + 200;
 
         updateRequestDisplay();
         addMessage('📋 New citizen request!', 'info');
