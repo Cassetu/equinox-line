@@ -1,5 +1,10 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; overflow: hidden; }
+body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: #f4e8d0;
+    color: #3a2a1a;
+    overflow: hidden;
+}
 
 #game-container {
     width: 100vw; height: 100vh;
@@ -10,9 +15,15 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
 }
 
 #header {
-    background: linear-gradient(to right, #1e40af, #7c3aed, #4c1d95, #1a0933);
-    padding: 15px; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid #fff; grid-column: 1 / -1;
+    background: linear-gradient(to bottom, #e8d4b0, #d4c0a0);
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px double #8b6f47;
+    border-top: 3px double #8b6f47;
+    grid-column: 1 / -1;
+    box-shadow: inset 0 0 20px rgba(139, 111, 71, 0.2);
 }
 
 
@@ -23,11 +34,13 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
 
 #left-panel {
     grid-column: 1; grid-row: 2;
-    background: rgba(0,0,0,0.95); border-right: 3px solid #4CAF50;
+    background: linear-gradient(to bottom, #f5e6d3, #e8d4b0);
+    border-right: 4px double #8b6f47;
     padding: 0;
     overflow: hidden;
     z-index: 10;
     display: flex;
+    box-shadow: inset -10px 0 20px rgba(139, 111, 71, 0.15);
 }
 
 .panel-content {
@@ -38,8 +51,8 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
 
 .panel-tabs {
     width: 50px;
-    background: rgba(0,0,0,0.5);
-    border-left: 2px solid rgba(76, 175, 80, 0.3);
+    background: linear-gradient(to right, #d4c0a0, #c4b090);
+    border-left: 2px solid #8b6f47;
     display: flex;
     flex-direction: column;
     padding: 10px 0;
@@ -54,21 +67,24 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
     justify-content: center;
     font-size: 20px;
     cursor: pointer;
-    background: rgba(255,255,255,0.05);
+    background: #e8d4b0;
     border-left: 3px solid transparent;
     transition: all 0.2s;
     position: relative;
+    border: 1px solid #c4b090;
+    margin: 2px;
 }
 
 .panel-tab:hover {
-    background: rgba(255,255,255,0.1);
-    border-left-color: rgba(76, 175, 80, 0.5);
+    background: #d4c0a0;
+    border-left-color: #8b6f47;
+    box-shadow: inset 0 0 10px rgba(139, 111, 71, 0.2);
 }
 
 .panel-tab.active {
-    background: rgba(76, 175, 80, 0.2);
-    border-left-color: #4CAF50;
-    box-shadow: inset 0 0 10px rgba(76, 175, 80, 0.3);
+    background: #c4b090;
+    border-left-color: #6b4f2f;
+    box-shadow: inset 0 0 10px rgba(107, 79, 47, 0.4);
 }
 
 .panel-tab::after {
@@ -122,7 +138,14 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
     font-size: 11px;
 }
 
-#main-game { grid-column: 2; grid-row: 2; position: relative; overflow: hidden; }
+#main-game {
+    grid-column: 2;
+    grid-row: 2;
+    position: relative;
+    overflow: hidden;
+    background: #f4e8d0;
+    border: 4px double #8b6f47;
+}
 
 #planet-view {
     width: 1000%;
@@ -130,49 +153,27 @@ body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #fff; 
     position: absolute;
     cursor: grab;
     background:
-        radial-gradient(ellipse 80px 120px at 8% 25%, #654321 0%, transparent 70%),
-        radial-gradient(ellipse 60px 90px at 12% 50%, #8B4513 0%, transparent 65%),
-        radial-gradient(ellipse 100px 140px at 15% 75%, #A0522D 0%, transparent 75%),
-        radial-gradient(ellipse 70px 100px at 20% 35%, #CD853F 0%, transparent 60%),
-        radial-gradient(ellipse 90px 130px at 6% 60%, #D2691E 0%, transparent 70%),
-        radial-gradient(ellipse 200px 150px at 35% 30%, #228B22 0%, rgba(34, 139, 34, 0.4) 40%, transparent 80%),
-        radial-gradient(ellipse 180px 140px at 40% 55%, #2E8B57 0%, rgba(46, 139, 87, 0.5) 35%, transparent 75%),
-        radial-gradient(ellipse 220px 160px at 45% 75%, #3CB371 0%, rgba(60, 179, 113, 0.4) 45%, transparent 85%),
-        radial-gradient(ellipse 150px 120px at 50% 40%, #66CDAA 0%, rgba(102, 205, 170, 0.3) 30%, transparent 70%),
-        radial-gradient(ellipse 190px 145px at 38% 65%, #8FBC8F 0%, rgba(143, 188, 143, 0.4) 40%, transparent 80%),
-        radial-gradient(ellipse 170px 130px at 52% 25%, #90EE90 0%, rgba(144, 238, 144, 0.3) 35%, transparent 75%),
-        radial-gradient(ellipse 250px 180px at 60% 50%, #4682B4 0%, rgba(70, 130, 180, 0.6) 50%, transparent 90%),
-        radial-gradient(ellipse 200px 150px at 65% 35%, #5F9EA0 0%, rgba(95, 158, 160, 0.5) 45%, transparent 85%),
-        radial-gradient(ellipse 230px 170px at 70% 65%, #6495ED 0%, rgba(100, 149, 237, 0.5) 40%, transparent 80%),
-        radial-gradient(ellipse 180px 140px at 75% 45%, #87CEEB 0%, rgba(135, 206, 235, 0.4) 35%, transparent 75%),
-        radial-gradient(ellipse 150px 110px at 82% 28%, #B0E0E6 0%, rgba(176, 224, 230, 0.6) 40%, transparent 80%),
-        radial-gradient(ellipse 130px 100px at 88% 55%, #ADD8E6 0%, rgba(173, 216, 230, 0.5) 35%, transparent 75%),
-        radial-gradient(ellipse 160px 120px at 85% 72%, #E0FFFF 0%, rgba(224, 255, 255, 0.6) 45%, transparent 85%),
-        radial-gradient(ellipse 140px 105px at 92% 40%, #F0F8FF 0%, rgba(240, 248, 255, 0.7) 40%, transparent 80%),
+        repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(139, 111, 71, 0.1) 49px, rgba(139, 111, 71, 0.1) 50px),
+        repeating-linear-gradient(0deg, transparent, transparent 49px, rgba(139, 111, 71, 0.1) 49px, rgba(139, 111, 71, 0.1) 50px),
+        radial-gradient(circle at 15% 25%, rgba(139, 69, 19, 0.15), transparent 20%),
+        radial-gradient(circle at 45% 50%, rgba(107, 142, 35, 0.15), transparent 25%),
+        radial-gradient(circle at 75% 40%, rgba(135, 206, 235, 0.15), transparent 20%),
         linear-gradient(to right,
-            #8B4513 0%,
-            #A0522D 5%,
-            #CD853F 10%,
-            #D2691E 15%,
-            #DEB887 20%,
-            #C19A6B 27%,
-            #9ACD32 33%,
-            #8FBC8F 40%,
-            #3CB371 47%,
-            #2E8B57 52%,
-            #20B2AA 60%,
-            #4682B4 67%,
-            #5F9EA0 74%,
-            #B0C4DE 80%,
-            #ADD8E6 87%,
-            #E0FFFF 94%,
-            #F0F8FF 100%
+            #d4a574 0%,
+            #c9996b 10%,
+            #d9b894 20%,
+            #a8c686 35%,
+            #8fb878 50%,
+            #7ea8b8 65%,
+            #9bc4d4 80%,
+            #c5dde8 95%,
+            #e8f4f8 100%
         );
     background-size:
-        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
-        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
-        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
-        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+        50px 50px,
+        50px 50px,
+        100% 100%, 100% 100%, 100% 100%,
+        100% 100%;
     transform-origin: top left;
     transition: transform 0.1s ease-out;
     will-change: transform;
