@@ -6277,7 +6277,7 @@ function convertTribalCity(tribal) {
     const city = {
         id: cityIdCounter++,
         name: getCityName(),
-        position: x, x, y,
+        position: tribalX, tribalY,
         population: 100,
         maxPopulation: 500 + TechTree.getTechBonus('maxPopulation'),
 

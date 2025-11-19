@@ -123,7 +123,7 @@ const WonderSystem = {
         `;
         panel.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="color: #FFD700; margin: 0;">WONDERS OF THE WORLD</h2>
+                <h2 style="color: #8b4f2f; margin: 0;">WONDERS OF THE WORLD</h2>
                 <button id="close-wonders-panel" style="width: 40px; height: 40px; font-size: 24px;">✕</button>
             </div>
             <div id="wonders-list"></div>
@@ -210,7 +210,7 @@ const WonderSystem = {
                     </div>
                 </div>
                 <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin-top: 10px;">
-                    <div style="font-size: 13px; color: #00ff00;"><strong>Effect:</strong> ${wonder.effect}</div>
+                    <div style="font-size: 13px; color: #8b4f2f;"><strong>Effect:</strong> ${wonder.effect}</div>
                     <div style="font-size: 11px; opacity: 0.7; margin-top: 5px;">Build time: ${Math.floor(wonder.buildTime / 100)} years</div>
                 </div>
                 ${statusText}

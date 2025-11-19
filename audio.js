@@ -48,8 +48,8 @@ const AudioManager = {
             right: 20px;
             width: 300px;
             max-height: 500px;
-            background: rgba(0, 0, 0, 0.95);
-            border: 2px solid #00ff00;
+            background: rgba(238,217,196,0.95);
+            border: 2px solid #8b4f2f;
             border-radius: 10px;
             padding: 15px;
             z-index: 10001;
@@ -63,11 +63,11 @@ const AudioManager = {
                     width: 100%;
                     height: 250px;
                     object-fit: cover;
-                    border: 2px solid #00ff00;
+                    border: 2px solid #8b4f2f;
                     margin-bottom: 10px;
                     background: linear-gradient(135deg, #1a1a2e, #16213e);
                 ">
-                <h3 style="color: #00ff00; margin: 0; font-size: 14px;">Music Player</h3>
+                <h3 style="color: #8b4f2f; margin: 0; font-size: 14px;">Music Player</h3>
             </div>
             <div style="margin-bottom: 15px;">
                 <button id="music-toggle-btn" style="width: 100%; margin-bottom: 5px;">Enable Music</button>
@@ -109,8 +109,8 @@ const AudioManager = {
                 padding: 8px;
                 font-size: 11px;
                 text-align: left;
-                background: ${index === this.currentTrackIndex ? 'rgba(0, 255, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
-                border: 1px solid ${index === this.currentTrackIndex ? '#00ff00' : 'rgba(255, 255, 255, 0.3)'};
+                background: ${index === this.currentTrackIndex ? 'rgba(55, 55, 55, 0.2)' : 'rgba(255, 255, 255, 0.1)'};
+                border: 1px solid ${index === this.currentTrackIndex ? '#8b4f2f' : 'rgba(255, 255, 255, 0.3)'};
             `;
             trackBtn.onclick = () => this.selectTrack(index);
             trackList.appendChild(trackBtn);
@@ -211,12 +211,12 @@ const AudioManager = {
 
         if (this.sfxEnabled) {
             btn.textContent = '🔊 SFX: ON';
-            btn.style.background = 'rgba(0, 255, 0, 0.2)';
-            btn.style.borderColor = '#00ff00';
+            btn.style.background = 'rgba(55, 55, 55, 0.2)';
+            btn.style.borderColor = '#8b4f2f';
         } else {
             btn.textContent = '🔇 SFX: OFF';
-            btn.style.background = 'rgba(255, 68, 0, 0.2)';
-            btn.style.borderColor = '#ff4400';
+            btn.style.background = 'rgba(55, 55, 55, 0.2)';
+            btn.style.borderColor = '#8b4f2f';
         }
 
         this.playSFX('sfx-button-click', 0.3);
